@@ -5,3 +5,10 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   sharp: false
+overrides:
+  # next hard-pins postcss 8.4.31, which is under active advisories; force the
+  # same safe minor already used by @tailwindcss/postcss and vite.
+  postcss: 8.5.26
+  # next's range (^0.34.3 || ^0.35.3) lets pnpm keep the stale 0.34.x lockfile
+  # entry; pin to the patched line explicitly.
+  sharp: ^0.35.3
