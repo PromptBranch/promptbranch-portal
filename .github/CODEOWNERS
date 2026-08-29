@@ -1,0 +1,4 @@
+# Repository control-plane files require review from the security owner.
+/.github/ @NightRang3r
+/SECURITY.md @NightRang3r
+/GOVERNANCE.md @NightRang3r

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/PromptBranch/promptbranch-portal/security/policy
+    about: Use the private reporting process; never disclose vulnerabilities or secrets in a public issue.
