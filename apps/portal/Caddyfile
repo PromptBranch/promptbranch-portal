@@ -1,0 +1,16 @@
+# Point a domain at this server, set DOMAIN=<domain> in .env, then start the
+# tls profile. Until then the default serves plain HTTP on localhost.
+{$DOMAIN:localhost}
+
+# Hard cap at the edge so oversized publishes are rejected before the app
+# buffers them.
+request_body {
+	max_size 256KB
+}
+
+reverse_proxy portal:3000 {
+	# Pin XFF to the real client IP: Caddy would otherwise append to any
+	# client-supplied X-Forwarded-For, letting an attacker spoof the hop the
+	# portal trusts for rate limiting.
+	header_up X-Forwarded-For {remote_host}
+}

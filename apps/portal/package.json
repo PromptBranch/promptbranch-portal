@@ -1,0 +1,49 @@
+{
+  "name": "@promptbranch/portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PromptBranch sharing portal: self-hosted Next.js service for unlisted prompt snapshots (JSON API + SSR viewer).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@promptbranch/share": "workspace:*",
+    "@shikijs/rehype": "^4.4.3",
+    "better-sqlite3": "13.0.3",
+    "diff": "^9.0.0",
+    "mermaid": "^11.17.2",
+    "next": "15.5.20",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "shiki": "^4.4.3",
+    "unified": "^11.0.5",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "jsdom": "^30.0.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.11"
+  }
+}
