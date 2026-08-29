@@ -11,9 +11,12 @@ requests rather than direct pushes.
 
 Each protected branch should require:
 
-- At least one approving review before merge.
-- Approval from a matching owner in `.github/CODEOWNERS` when a pull request
-  changes repository control-plane files.
+- A pull request before merge. While the repository has only one maintainer,
+  the required approval count is zero because GitHub does not allow authors to
+  approve their own pull requests.
+- `.github/CODEOWNERS` to document ownership of repository control-plane files.
+  Required CODEOWNER approval should be enabled when a second maintainer with
+  write access is available.
 - Dismissal of stale approvals when new commits are pushed.
 - Resolution of review conversations before merge.
 - The GitHub Actions `verify` status check to pass on the current commit.
@@ -29,8 +32,10 @@ documented review.
 ## Repository Control Plane
 
 The `.github/` directory, security policy, governance policy, and ownership
-rules define trusted automation and reporting boundaries. Changes to these
-files require explicit review from `@NightRang3r`.
+rules define trusted automation and reporting boundaries. While
+`@NightRang3r` is the sole maintainer, changes to these files must be initiated
+or explicitly reviewed by that account and must pass the required status
+checks.
 
 GitHub Actions must retain least-privilege token permissions. Third-party
 actions must be pinned to full commit SHAs with their reviewed release versions
