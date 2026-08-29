@@ -30,7 +30,7 @@ pnpm test             # vitest across all packages (share + portal)
 pnpm typecheck        # strict tsc across all packages
 ```
 
-Per-package: `pnpm --filter @promptbranch/portal <script>` or `--filter @promptbranch/share`. Both packages expose `test` and `typecheck`; the portal adds `dev`/`build`/`start`. There is no lint script and no CI pipeline in this repo — `pnpm typecheck && pnpm test` is the verification gate.
+Per-package: `pnpm --filter @promptbranch/portal <script>` or `--filter @promptbranch/share`. Both packages expose `test` and `typecheck`; the portal adds `dev`/`build`/`start`. There is no lint script. GitHub Actions runs the frozen install, typecheck, test, and production-build gate for pull requests and pushes to `main` or `dev`.
 
 ## Tech Stack
 
