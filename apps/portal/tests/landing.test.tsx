@@ -5,6 +5,7 @@ import Home, { metadata } from "@/app/page";
 
 const REPO = "https://github.com/PromptBranch/promptbranch";
 const RELEASES = `${REPO}/releases`;
+const PORTAL_REPO = "https://github.com/PromptBranch/PromptBranch-Portal";
 
 describe("landing page", () => {
   it("renders the hero with value proposition and primary CTAs", () => {
@@ -44,22 +45,39 @@ describe("landing page", () => {
     }
   });
 
-  it("links every available desktop platform card to releases", () => {
+  it("links every available desktop platform card to releases with neutral styling", () => {
     render(<Home />);
     for (const [name, note] of [
       ["macOS", "Apple Silicon & Intel"],
-      ["Windows", "x64, per-user install"],
+      ["Windows", "x64 & ARM64"],
       ["Linux", "AppImage & deb"],
     ]) {
-      expect(
-        screen.getByRole("link", { name: new RegExp(`${name}.*${note}.*Available`) }),
-      ).toHaveAttribute("href", RELEASES);
+      const platformLink = screen.getByRole("link", {
+        name: new RegExp(`${name}.*${note}.*Available`),
+      });
+      expect(platformLink).toHaveAttribute("href", RELEASES);
+      expect(platformLink).toHaveClass("border-line", "bg-panel");
+      expect(platformLink).not.toHaveClass("border-success/35", "bg-success/5");
     }
 
     expect(screen.getAllByText("Available")).toHaveLength(3);
     for (const status of screen.getAllByText("Available")) {
-      expect(status).toHaveClass("text-success");
+      expect(status).toHaveClass("text-ink-faint");
+      expect(status).not.toHaveClass("text-success");
     }
+    expect(
+      screen.getByText(/Downloads are available for macOS, Windows, and Linux\./),
+    ).toBeInTheDocument();
+  });
+
+  it("explains self-hosted prompt sharing and links the Portal repository", () => {
+    render(<Home />);
+    expect(screen.getByRole("heading", { name: "Self-host your sharing portal" })).toBeInTheDocument();
+    expect(screen.getByText(/Run PromptBranch Portal on your own infrastructure/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Self-host PromptBranch Portal" })).toHaveAttribute(
+      "href",
+      PORTAL_REPO,
+    );
   });
 
   it("links to docs and issues in the footer, all on the public repo", () => {
