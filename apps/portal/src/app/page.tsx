@@ -15,10 +15,10 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getEnv } from "@/lib/env";
 
-// Canonical outbound links. Releases do not exist yet, so download CTAs are
-// disabled; they start pointing at LINKS.repo + /releases with the first drop.
+// Canonical outbound links.
 const LINKS = {
   repo: "https://github.com/PromptBranch/promptbranch",
+  releases: "https://github.com/PromptBranch/promptbranch/releases",
   docs: "/docs",
   issues: "https://github.com/PromptBranch/promptbranch/issues",
 } as const;
@@ -76,9 +76,21 @@ const FEATURES = [
 ] as const;
 
 const PLATFORMS = [
-  { icon: AppleLogo, name: "macOS", note: "Apple Silicon & Intel" },
-  { icon: WindowsLogo, name: "Windows", note: "x64, per-user install" },
-  { icon: LinuxLogo, name: "Linux", note: "AppImage & deb" },
+  {
+    icon: AppleLogo,
+    name: "macOS",
+    note: "Apple Silicon & Intel",
+    status: "Available",
+    href: LINKS.releases,
+  },
+  {
+    icon: WindowsLogo,
+    name: "Windows",
+    note: "x64, per-user install",
+    status: "Soon",
+    href: null,
+  },
+  { icon: LinuxLogo, name: "Linux", note: "AppImage & deb", status: "Soon", href: null },
 ] as const;
 
 export default function Home() {
@@ -128,14 +140,12 @@ export default function Home() {
             Source
           </a>
           <ThemeToggle />
-          <button
-            type="button"
-            disabled
-            title="Releases coming soon"
-            className="cursor-not-allowed rounded-lg border border-line px-3.5 py-1.5 font-medium text-ink-faint"
+          <a
+            href={LINKS.releases}
+            className="rounded-lg border border-line px-3.5 py-1.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px]"
           >
             Download
-          </button>
+          </a>
         </nav>
       </header>
 
@@ -154,15 +164,13 @@ export default function Home() {
               rely on.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                disabled
-                title="Releases coming soon"
-                className="flex cursor-not-allowed items-center gap-2 rounded-lg border border-line px-5 py-2.5 font-medium text-ink-faint"
+              <a
+                href={LINKS.releases}
+                className="flex items-center gap-2 rounded-lg border border-line-strong px-5 py-2.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px]"
               >
                 <AppleLogo size={18} aria-hidden />
-                Download for macOS
-              </button>
+                Download
+              </a>
               <a
                 href={LINKS.repo}
                 className="flex items-center gap-2 rounded-lg border border-line-strong px-5 py-2.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px]"
@@ -233,31 +241,52 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Download: centered band, platform cards, honest signing notes.
-            Builds are not published yet, so the cards are not links. */}
+        {/* Download: centered band, platform cards, and signing notes. */}
         <section className="border-t border-line">
           <div className="mx-auto w-full max-w-3xl px-6 py-16 text-center md:py-20">
             <h2 className="text-2xl font-semibold tracking-tight text-ink md:text-3xl">
               Download PromptBranch
             </h2>
             <p className="mt-3 leading-relaxed text-ink-dim">
-              Public builds are in the works - the downloads below go live with the first release.
-              macOS builds will be signed and notarized; Windows and Linux are unsigned at first.
+              macOS builds are available now. Windows and Linux downloads are still in the works.
+              macOS builds are signed and notarized.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {PLATFORMS.map((platform) => (
-                <div
-                  key={platform.name}
-                  className="flex flex-col items-center gap-2 rounded-xl border border-line bg-panel px-4 py-5 opacity-70"
-                >
-                  <platform.icon size={28} aria-hidden className="text-ink" />
-                  <span className="font-medium text-ink">{platform.name}</span>
-                  <span className="text-xs text-ink-dim">{platform.note}</span>
-                  <span className="rounded-full border border-line px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-ink-faint">
-                    Soon
-                  </span>
-                </div>
-              ))}
+              {PLATFORMS.map((platform) => {
+                const cardContent = (
+                  <>
+                    <platform.icon size={28} aria-hidden className="text-ink" />
+                    <span className="font-medium text-ink">{platform.name}</span>
+                    <span className="text-xs text-ink-dim">{platform.note}</span>
+                    <span
+                      className={
+                        platform.href
+                          ? "rounded-full border border-success/35 bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success"
+                          : "rounded-full border border-line px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-ink-faint"
+                      }
+                    >
+                      {platform.status}
+                    </span>
+                  </>
+                );
+
+                return platform.href ? (
+                  <a
+                    key={platform.name}
+                    href={platform.href}
+                    className="flex flex-col items-center gap-2 rounded-xl border border-success/35 bg-success/5 px-4 py-5 transition-colors hover:bg-success/10 focus-visible:outline-success"
+                  >
+                    {cardContent}
+                  </a>
+                ) : (
+                  <div
+                    key={platform.name}
+                    className="flex flex-col items-center gap-2 rounded-xl border border-line bg-panel px-4 py-5 opacity-70"
+                  >
+                    {cardContent}
+                  </div>
+                );
+              })}
             </div>
             <p className="mt-6 text-sm text-ink-dim">
               Want to be first to try a build?{" "}

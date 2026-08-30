@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import Home, { metadata } from "@/app/page";
 
 const REPO = "https://github.com/PromptBranch/promptbranch";
+const RELEASES = `${REPO}/releases`;
 
 describe("landing page", () => {
   it("renders the hero with value proposition and primary CTAs", () => {
@@ -14,9 +15,9 @@ describe("landing page", () => {
     expect(
       screen.getByText(/organize, version, evaluate, and share the prompts you rely on/),
     ).toBeInTheDocument();
-    // Downloads are disabled until the first release.
-    const heroDownload = screen.getByRole("button", { name: /Download for macOS/ });
-    expect(heroDownload).toBeDisabled();
+    expect(
+      within(screen.getByRole("main")).getByRole("link", { name: "Download" }),
+    ).toHaveAttribute("href", RELEASES);
     expect(screen.getAllByRole("link", { name: /Source code/ })[0]).toHaveAttribute("href", REPO);
     expect(screen.getAllByAltText(/The PromptBranch desktop app/)).toHaveLength(2);
   });
@@ -43,11 +44,17 @@ describe("landing page", () => {
     }
   });
 
-  it("shows non-interactive download cards for all three platforms", () => {
+  it("links the available macOS card to releases while other platforms remain unavailable", () => {
     render(<Home />);
-    for (const note of ["Apple Silicon & Intel", "x64, per-user install", "AppImage & deb"]) {
+    const macosDownload = screen.getByRole("link", {
+      name: /macOS.*Apple Silicon & Intel.*Available/,
+    });
+    expect(macosDownload).toHaveAttribute("href", RELEASES);
+    expect(screen.getByText("Available")).toHaveClass("text-success");
+
+    for (const note of ["x64, per-user install", "AppImage & deb"]) {
       expect(screen.getByText(note)).toBeInTheDocument();
-      // No download links exist yet: platform cards must not be clickable.
+      // Windows and Linux releases are not published yet.
       expect(screen.queryByRole("link", { name: new RegExp(note) })).toBeNull();
     }
   });
