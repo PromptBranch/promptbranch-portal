@@ -72,8 +72,10 @@ describe("landing page", () => {
 
   it("explains self-hosted prompt sharing and links the Portal repository", () => {
     render(<Home />);
-    expect(screen.getByRole("heading", { name: "Self-host your sharing portal" })).toBeInTheDocument();
-    expect(screen.getByText(/Run PromptBranch Portal on your own infrastructure/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Share prompts your way" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Use the free PromptBranch Sharing Portal, or host your own for full control\./),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Self-host PromptBranch Portal" })).toHaveAttribute(
       "href",
       PORTAL_REPO,

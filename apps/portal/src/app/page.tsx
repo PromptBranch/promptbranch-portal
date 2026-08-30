@@ -257,11 +257,10 @@ export default function Home() {
                 Sharing portal
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink md:text-3xl">
-                Self-host your sharing portal
+                Share prompts your way
               </h2>
               <p className="mt-3 max-w-2xl leading-relaxed text-ink-dim">
-                Run PromptBranch Portal on your own infrastructure to share prompt snapshots on
-                your terms, with an unlisted viewer and no third-party tracking.
+                Use the free PromptBranch Sharing Portal, or host your own for full control.
               </p>
             </div>
             <a
