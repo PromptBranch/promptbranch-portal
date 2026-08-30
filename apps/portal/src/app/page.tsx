@@ -87,10 +87,16 @@ const PLATFORMS = [
     icon: WindowsLogo,
     name: "Windows",
     note: "x64, per-user install",
-    status: "Soon",
-    href: null,
+    status: "Available",
+    href: LINKS.releases,
   },
-  { icon: LinuxLogo, name: "Linux", note: "AppImage & deb", status: "Soon", href: null },
+  {
+    icon: LinuxLogo,
+    name: "Linux",
+    note: "AppImage & deb",
+    status: "Available",
+    href: LINKS.releases,
+  },
 ] as const;
 
 export default function Home() {
