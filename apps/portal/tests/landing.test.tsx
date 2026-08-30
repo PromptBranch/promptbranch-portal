@@ -44,18 +44,21 @@ describe("landing page", () => {
     }
   });
 
-  it("links the available macOS card to releases while other platforms remain unavailable", () => {
+  it("links every available desktop platform card to releases", () => {
     render(<Home />);
-    const macosDownload = screen.getByRole("link", {
-      name: /macOS.*Apple Silicon & Intel.*Available/,
-    });
-    expect(macosDownload).toHaveAttribute("href", RELEASES);
-    expect(screen.getByText("Available")).toHaveClass("text-success");
+    for (const [name, note] of [
+      ["macOS", "Apple Silicon & Intel"],
+      ["Windows", "x64, per-user install"],
+      ["Linux", "AppImage & deb"],
+    ]) {
+      expect(
+        screen.getByRole("link", { name: new RegExp(`${name}.*${note}.*Available`) }),
+      ).toHaveAttribute("href", RELEASES);
+    }
 
-    for (const note of ["x64, per-user install", "AppImage & deb"]) {
-      expect(screen.getByText(note)).toBeInTheDocument();
-      // Windows and Linux releases are not published yet.
-      expect(screen.queryByRole("link", { name: new RegExp(note) })).toBeNull();
+    expect(screen.getAllByText("Available")).toHaveLength(3);
+    for (const status of screen.getAllByText("Available")) {
+      expect(status).toHaveClass("text-success");
     }
   });
 
