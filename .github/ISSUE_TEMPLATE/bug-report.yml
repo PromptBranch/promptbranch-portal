@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible non-security defect in PromptBranch Portal
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve PromptBranch Portal.
+
+        Do not report suspected vulnerabilities here. Follow the private process in the repository's Security Policy and never post secrets, deletion tokens, private prompts, or personal data in an issue.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+      placeholder: Describe the defect and its user-visible impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest sequence that reproduces the issue.
+      placeholder: |
+        1. Start from...
+        2. Send or open...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Include the portal version, container tag, or Git commit.
+      placeholder: 0.1.0 or a full commit SHA
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - promptbranch.app
+        - Self-hosted Docker Compose
+        - Local development
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Add relevant logs or screenshots after removing sensitive data.
+
+  - type: checkboxes
+    id: conduct
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, tokens, private prompts, and personal data from this report.
+          required: true
+        - label: This is not a vulnerability report.
+          required: true

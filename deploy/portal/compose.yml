@@ -1,0 +1,113 @@
+name: promptbranch
+
+services:
+  portal:
+    build:
+      context: ../..
+      dockerfile: apps/portal/Dockerfile
+    image: promptbranch-portal:${PORTAL_IMAGE_TAG:-0.1.0}
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Docker injects HOSTNAME as the container ID; Next's standalone server
+      # uses it as its bind host unless an explicit wildcard is provided.
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in deploy/portal/.env}
+      DATA_DIR: /data
+    expose:
+      - "3000"
+    volumes:
+      - portal-data:/data
+    networks:
+      - app
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+      - /app/apps/portal/.next/cache:rw,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  npm:
+    image: ${NPM_IMAGE:-docker.io/jc21/nginx-proxy-manager@sha256:52b2c59994f3d36acfcf70a1626f29734df0ed8c71bacc0269f78b6f939858bb}
+    environment:
+      TZ: ${TZ:-Asia/Jerusalem}
+      DISABLE_IPV6: ${DISABLE_IPV6:-true}
+      # Avoid an unnecessary startup dependency on third-party CDN ranges.
+      IP_RANGES_FETCH_ENABLED: ${IP_RANGES_FETCH_ENABLED:-false}
+      # These are only used on the first boot when the NPM database is empty.
+      # Remove them from the server .env after the initial admin is created.
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+    ports:
+      - "80:80"
+      - "127.0.0.1:81:81"
+      - "443:443"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - edge
+      - app
+    depends_on:
+      portal:
+        condition: service_healthy
+    restart: unless-stopped
+    # NPM's official image needs root inside the proxy container to bind 80/443,
+    # write its generated nginx configuration, and run certbot. The application
+    # container above is explicitly non-root and has all Linux capabilities
+    # removed.
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        - CMD
+        - /usr/bin/check-health
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: local
+      options:
+        max-size: 20m
+        max-file: "5"
+
+networks:
+  edge:
+    name: promptbranch-edge
+  app:
+    name: promptbranch-app
+    internal: true
+
+volumes:
+  portal-data:
+    name: promptbranch-portal-data
+  npm-data:
+    name: promptbranch-npm-data
+  npm-letsencrypt:
+    name: promptbranch-npm-letsencrypt

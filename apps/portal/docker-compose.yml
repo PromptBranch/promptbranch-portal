@@ -1,0 +1,36 @@
+services:
+  portal:
+    build:
+      context: ../..
+      dockerfile: apps/portal/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      DATA_DIR: /data
+    volumes:
+      - portal-data:/data
+    restart: unless-stopped
+
+  # Optional TLS terminator: set DOMAIN (and PUBLIC_BASE_URL) in .env, then
+  #   docker compose --profile tls up -d
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - portal
+    restart: unless-stopped
+
+volumes:
+  portal-data:
+  caddy-data:
+  caddy-config:

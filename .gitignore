@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+*.log
+.DS_Store
+*.tsbuildinfo
+coverage/
+*.db
+*.db-wal
+*.db-shm
+*.backup-*
+
+# portal
+apps/portal/.next/
+apps/portal/data/
+/deploy/portal/.env
+docs/superpowers/*
