@@ -5,6 +5,7 @@ import {
   AppleLogo,
   ArrowUpRight,
   ChartLineUp,
+  DownloadSimple,
   GitBranch,
   GithubLogo,
   LinuxLogo,
@@ -18,6 +19,7 @@ import { getEnv } from "@/lib/env";
 // Canonical outbound links.
 const LINKS = {
   repo: "https://github.com/PromptBranch/promptbranch",
+  portalRepo: "https://github.com/PromptBranch/PromptBranch-Portal",
   releases: "https://github.com/PromptBranch/promptbranch/releases",
   docs: "/docs",
   issues: "https://github.com/PromptBranch/promptbranch/issues",
@@ -86,7 +88,7 @@ const PLATFORMS = [
   {
     icon: WindowsLogo,
     name: "Windows",
-    note: "x64, per-user install",
+    note: "x64 & ARM64",
     status: "Available",
     href: LINKS.releases,
   },
@@ -174,7 +176,7 @@ export default function Home() {
                 href={LINKS.releases}
                 className="flex items-center gap-2 rounded-lg border border-line-strong px-5 py-2.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px]"
               >
-                <AppleLogo size={18} aria-hidden />
+                <DownloadSimple size={18} aria-hidden />
                 Download
               </a>
               <a
@@ -247,6 +249,31 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Sharing portal: a self-hosted option for organizations that need to control their sharing infrastructure. */}
+        <section className="border-t border-line">
+          <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:py-20">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+                Sharing portal
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink md:text-3xl">
+                Self-host your sharing portal
+              </h2>
+              <p className="mt-3 max-w-2xl leading-relaxed text-ink-dim">
+                Run PromptBranch Portal on your own infrastructure to share prompt snapshots on
+                your terms, with an unlisted viewer and no third-party tracking.
+              </p>
+            </div>
+            <a
+              href={LINKS.portalRepo}
+              className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-line-strong px-5 py-2.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px] md:self-auto"
+            >
+              Self-host PromptBranch Portal
+              <ArrowUpRight size={18} aria-hidden />
+            </a>
+          </div>
+        </section>
+
         {/* Download: centered band, platform cards, and signing notes. */}
         <section className="border-t border-line">
           <div className="mx-auto w-full max-w-3xl px-6 py-16 text-center md:py-20">
@@ -254,8 +281,8 @@ export default function Home() {
               Download PromptBranch
             </h2>
             <p className="mt-3 leading-relaxed text-ink-dim">
-              macOS builds are available now. Windows and Linux downloads are still in the works.
-              macOS builds are signed and notarized.
+              Downloads are available for macOS, Windows, and Linux. macOS builds are signed and
+              notarized.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {PLATFORMS.map((platform) => {
@@ -267,7 +294,7 @@ export default function Home() {
                     <span
                       className={
                         platform.href
-                          ? "rounded-full border border-success/35 bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success"
+                          ? "rounded-full border border-line bg-panel px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-ink-faint"
                           : "rounded-full border border-line px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-ink-faint"
                       }
                     >
@@ -280,7 +307,7 @@ export default function Home() {
                   <a
                     key={platform.name}
                     href={platform.href}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-success/35 bg-success/5 px-4 py-5 transition-colors hover:bg-success/10 focus-visible:outline-success"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-line bg-panel px-4 py-5 transition-colors hover:border-line-strong hover:bg-hover focus-visible:outline-accent"
                   >
                     {cardContent}
                   </a>
