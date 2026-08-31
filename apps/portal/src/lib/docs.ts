@@ -26,6 +26,15 @@ export interface DocPage {
   toc: TocItem[];
 }
 
+export interface DocMarkdown {
+  slug: string;
+  slugArray: string[];
+  title: string;
+  description: string;
+  category: string;
+  rawMarkdown: string;
+}
+
 export interface DocSearchResult {
   slug: string;
   title: string;
@@ -269,8 +278,8 @@ export function getAllDocPagesMeta(): Array<{ slug: string; slugArray: string[];
   return result;
 }
 
-/** Fetches and renders a single doc page by slug string or slug array. */
-export async function getDocPage(slug: string | string[]): Promise<DocPage | null> {
+/** Reads a public documentation page as normalized Markdown without rendering it. */
+export function getDocMarkdown(slug: string | string[]): DocMarkdown | null {
   const slugStr = Array.isArray(slug) ? slug.join("/") : slug;
   
   let targetPage: { slug: string; file: string; title: string; description: string } | null = null;
@@ -287,18 +296,28 @@ export async function getDocPage(slug: string | string[]): Promise<DocPage | nul
 
   if (!targetPage) return null;
 
-  const rawMarkdown = rewriteDocLinks(readDocFile(targetPage.file), targetPage.file);
-  const toc = extractToc(rawMarkdown);
-  const contentHtml = await renderDocMarkdown(rawMarkdown);
-
   return {
     slug: targetPage.slug,
     slugArray: targetPage.slug.split("/"),
     title: targetPage.title,
     description: targetPage.description,
     category: categoryTitle,
+    rawMarkdown: rewriteDocLinks(readDocFile(targetPage.file), targetPage.file),
+  };
+}
+
+/** Fetches and renders a single doc page by slug string or slug array. */
+export async function getDocPage(slug: string | string[]): Promise<DocPage | null> {
+  const doc = getDocMarkdown(slug);
+  if (!doc) return null;
+
+  const { rawMarkdown } = doc;
+  const toc = extractToc(rawMarkdown);
+  const contentHtml = await renderDocMarkdown(rawMarkdown);
+
+  return {
+    ...doc,
     contentHtml,
-    rawMarkdown,
     toc,
   };
 }

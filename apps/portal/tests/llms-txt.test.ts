@@ -14,6 +14,7 @@ describe("GET /llms.txt", () => {
     expect(text).toContain("https://portal.example/docs/reference/configuration-and-env");
     expect(text).toContain("https://portal.example/docs/reference/updates");
     expect(text).toContain("https://github.com/PromptBranch/promptbranch");
+    expect(text).toContain("https://portal.example/llms-full.txt");
   });
 
   it("never references snapshot links (unlisted by design)", async () => {

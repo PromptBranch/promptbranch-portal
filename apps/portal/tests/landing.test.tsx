@@ -106,9 +106,9 @@ describe("landing page", () => {
       url: "/",
       siteName: "PromptBranch",
       type: "website",
-      images: [{ url: "/app-screenshot.png", width: 2880, height: 1630 }],
+      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
     });
-    expect(metadata.twitter).toMatchObject({ card: "summary_large_image" });
+    expect(metadata.twitter).toMatchObject({ card: "summary_large_image", images: ["/opengraph-image"] });
     // Landing page must be indexable: no robots restrictions set.
     expect(metadata.robots).toBeUndefined();
   });
@@ -118,11 +118,27 @@ describe("landing page", () => {
     const script = container.querySelector('script[type="application/ld+json"]');
     expect(script).toBeInTheDocument();
     const parsed = JSON.parse(script!.textContent ?? "{}") as {
-      "@graph": Array<{ "@type": string; url?: string }>;
+      "@graph": Array<{
+        "@type": string;
+        url?: string;
+        downloadUrl?: string;
+        sameAs?: string;
+        featureList?: string[];
+      }>;
     };
     const types = parsed["@graph"].map((node) => node["@type"]);
     expect(types).toContain("WebSite");
     expect(types).toContain("SoftwareApplication");
     expect(parsed["@graph"][0]?.url).toMatch(/^https?:\/\//);
+    expect(parsed["@graph"].find((node) => node["@type"] === "SoftwareApplication")).toMatchObject({
+      downloadUrl: "https://github.com/PromptBranch/promptbranch/releases",
+      sameAs: "https://github.com/PromptBranch/promptbranch",
+      featureList: [
+        "Branching version history",
+        "Evidence-based prompt evaluation",
+        "Coding-agent integrations",
+        "Local-first private storage",
+      ],
+    });
   });
 });
