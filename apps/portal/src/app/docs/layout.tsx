@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     default: "Documentation · PromptBranch",
     template: "%s · PromptBranch Docs",
   },
-  description: "Comprehensive documentation, user guides, API reference, and architecture for PromptBranch.",
+  description: "Customer and agent guides for the PromptBranch desktop app, CLI, MCP server, sharing, and sync.",
 };
 
 export default function DocsLayout({ children }: { children: ReactNode }) {

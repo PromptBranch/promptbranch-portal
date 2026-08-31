@@ -5,7 +5,6 @@ import Home, { metadata } from "@/app/page";
 
 const REPO = "https://github.com/PromptBranch/promptbranch";
 const RELEASES = `${REPO}/releases`;
-const PORTAL_REPO = "https://github.com/PromptBranch/PromptBranch-Portal";
 
 describe("landing page", () => {
   it("renders the hero with value proposition and primary CTAs", () => {
@@ -70,15 +69,15 @@ describe("landing page", () => {
     ).toBeInTheDocument();
   });
 
-  it("explains self-hosted prompt sharing and links the Portal repository", () => {
+  it("explains prompt sharing and links the customer guide", () => {
     render(<Home />);
-    expect(screen.getByRole("heading", { name: "Share prompts your way" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Share a prompt when you choose" })).toBeInTheDocument();
     expect(
-      screen.getByText(/Use the free PromptBranch Sharing Portal, or host your own for full control\./),
+      screen.getByText(/Publish an immutable snapshot, review the secret scan, and revoke the link later if needed\./),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Self-host PromptBranch Portal" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Learn about sharing" })).toHaveAttribute(
       "href",
-      PORTAL_REPO,
+      "/docs/sharing/link-sharing-and-portal",
     );
   });
 

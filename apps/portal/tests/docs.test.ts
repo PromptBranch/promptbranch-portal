@@ -56,18 +56,18 @@ End content
   it("loads and renders documentation pages with Shiki highlighting", async () => {
     const page = await getDocPage("getting-started/overview");
     expect(page).not.toBeNull();
-    expect(page?.title).toBe("Overview & Philosophy");
+    expect(page?.title).toBe("Overview");
     expect(page?.category).toBe("Getting Started");
     expect(page?.contentHtml).toContain("PromptBranch");
     expect(page?.toc.length).toBeGreaterThan(0);
   });
 
-  it("publishes the desktop update guide in the reference section", async () => {
+  it("publishes the current desktop update guide in the reference section", async () => {
     const page = await getDocPage("reference/updates");
     expect(page).not.toBeNull();
     expect(page?.title).toBe("Updates");
     expect(page?.category).toBe("Configuration & Reference");
-    expect(page?.contentHtml).toMatch(/No public\s+release feed has been published yet/);
+    expect(page?.contentHtml).toMatch(/Check for Updates/);
   });
 
   it("rewrites relative .md links into /docs routes", async () => {

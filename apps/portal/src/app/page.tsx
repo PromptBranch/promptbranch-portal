@@ -19,7 +19,6 @@ import { getEnv } from "@/lib/env";
 // Canonical outbound links.
 const LINKS = {
   repo: "https://github.com/PromptBranch/promptbranch",
-  portalRepo: "https://github.com/PromptBranch/PromptBranch-Portal",
   releases: "https://github.com/PromptBranch/promptbranch/releases",
   docs: "/docs",
   issues: "https://github.com/PromptBranch/promptbranch/issues",
@@ -249,7 +248,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Sharing portal: a self-hosted option for organizations that need to control their sharing infrastructure. */}
         <section className="border-t border-line">
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:py-20">
             <div>
@@ -257,19 +255,19 @@ export default function Home() {
                 Sharing portal
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink md:text-3xl">
-                Share prompts your way
+                Share a prompt when you choose
               </h2>
               <p className="mt-3 max-w-2xl leading-relaxed text-ink-dim">
-                Use the free PromptBranch Sharing Portal, or host your own for full control.
+                Publish an immutable snapshot, review the secret scan, and revoke the link later if needed.
               </p>
             </div>
-            <a
-              href={LINKS.portalRepo}
+            <Link
+              href="/docs/sharing/link-sharing-and-portal"
               className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-line-strong px-5 py-2.5 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px] md:self-auto"
             >
-              Self-host PromptBranch Portal
+              Learn about sharing
               <ArrowUpRight size={18} aria-hidden />
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -280,8 +278,8 @@ export default function Home() {
               Download PromptBranch
             </h2>
             <p className="mt-3 leading-relaxed text-ink-dim">
-              Downloads are available for macOS, Windows, and Linux. macOS builds are signed and
-              notarized.
+              Downloads are available for macOS, Windows, and Linux. Choose the installer for your
+              operating system.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {PLATFORMS.map((platform) => {

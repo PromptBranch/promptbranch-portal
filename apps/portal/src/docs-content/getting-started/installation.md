@@ -6,57 +6,70 @@ PromptBranch can be used as a full desktop application with a visual UI, as a st
 
 ## Desktop Application
 
-Installers will be distributed through the public release channel for macOS,
-Windows, and Linux. No public desktop release or download page has been
-published yet.
+PromptBranch desktop is available for macOS, Windows, and Linux. The CLI and
+MCP server are also cross-platform.
 
 ### macOS
 
-PromptBranch provides native universal builds for Apple Silicon (M1/M2/M3/M4) and Intel Macs:
-
-- **Apple Silicon (ARM64)**: `PromptBranch-<version>-arm64.dmg`
-- **Intel (x64)**: `PromptBranch-<version>-x64.dmg`
-- **Portable Zip**: `PromptBranch-<version>-arm64.zip` / `PromptBranch-<version>-x64.zip`
+Download the installer that matches your Mac from
+[GitHub Releases](https://github.com/PromptBranch/promptbranch/releases),
+open it, and move PromptBranch to Applications.
 
 > [!NOTE]
 > **Local Network Permission Prompt**: On macOS, the first time you enable Multi-Device Sync, macOS may display a system dialog asking for **Local Network** access. Select **Allow** so local discovery and peer-to-peer sync can reach your other devices.
 
 ### Windows
 
-- **Installer**: `PromptBranch-Setup-<version>.exe`
-- **Architecture**: 64-bit (x64)
-
-The Windows installer uses NSIS in **per-user mode** (`%LOCALAPPDATA%\Programs\PromptBranch`). It does not require administrator privileges to install or update.
-
-> [!TIP]
-> If Windows SmartScreen displays a warning on an unsigned build, click **More info** and select **Run anyway**.
+Download the installer that matches your Windows device from
+[GitHub Releases](https://github.com/PromptBranch/promptbranch/releases),
+then run it.
 
 ### Linux
 
-- **AppImage**: `PromptBranch-<version>.AppImage`
-- **Debian / Ubuntu**: `PromptBranch-<version>.deb`
+Download the AppImage or Debian package that matches your Linux device from
+[GitHub Releases](https://github.com/PromptBranch/promptbranch/releases),
+then install or run it using your distribution's normal method.
 
-#### AppImage Prerequisites
-AppImage binaries on modern Linux distributions (such as Ubuntu 24.04+, Debian 12+, Fedora 40+) require FUSE 2 or 3:
-```bash
-# Ubuntu / Debian
-sudo apt install libfuse2
+---
 
-# Fedora / RHEL
-sudo dnf install fuse-libs
-```
-To run the AppImage:
+## Build from Source
+
+To build PromptBranch from a checkout, install **Node.js 22** and enable
+**pnpm 11.7.0** through Corepack. Then clone the repository and build every
+workspace package:
+
 ```bash
-chmod +x PromptBranch-*.AppImage
-./PromptBranch-*.AppImage
+git clone https://github.com/PromptBranch/promptbranch.git
+cd promptbranch
+corepack enable
+pnpm install
+pnpm build
 ```
+
+`pnpm build` builds the desktop app as well as the CLI and MCP server. To run
+the desktop app from the checkout, use:
+
+```bash
+pnpm dev
+```
+
+To build just one command-line adapter, run its package build command:
+
+```bash
+pnpm --filter @promptbranch/cli build
+pnpm --filter @promptbranch/mcp build
+```
+
+The resulting Node entry points are `apps/cli/dist/index.js` and
+`packages/mcp/dist/index.js`.
 
 ---
 
 ## Command-Line Interface (CLI)
 
-No public CLI package has been published yet. Once `@promptbranch/cli` is
-available on npm, run it directly without a global installation:
+The CLI needs **Node.js 22** or later.
+
+Run `@promptbranch/cli` directly from npm without a global installation:
 
 ```bash
 npx -y @promptbranch/cli db-path
@@ -77,10 +90,11 @@ promptbranch db-path
 
 ## Model Context Protocol (MCP) Server
 
+The MCP server needs **Node.js 22** or later.
+
 PromptBranch provides a stdio MCP server that enables AI assistants (such as Claude Desktop, Cursor, Windsurf, or Cline) to read prompts, log run metrics, and suggest variations.
 
-No public MCP package has been published yet. The configuration below becomes
-usable when `@promptbranch/mcp` is available on npm.
+Run the MCP server from npm with `npx -y @promptbranch/mcp`.
 
 ### Claude Desktop Configuration
 
@@ -136,8 +150,8 @@ promptbranch list
 > [!NOTE]
 > For backwards compatibility, PromptBranch also recognizes the legacy environment variables `PROMPTHUB_DB` and `PROMPTBUILDER_DB` as fallbacks if `PROMPTBRANCH_DB` is not set.
 
-### Automatic Migration from Legacy Apps
-If you previously used pre-release versions (named *PromptBuilder* or *PromptHub*), PromptBranch automatically migrates your existing database on first launch:
-1. It locates the legacy `library.db` along with its WAL/SHM sidecar files.
-2. It safely copies them into the new `PromptBranch` directory.
-3. The original legacy database files are left completely untouched as a backup.
+### Moving from earlier preview apps
+
+If you previously used *PromptBuilder* or *PromptHub*, PromptBranch copies
+that library to its new location on first launch. Your original library stays
+unchanged.

@@ -12,8 +12,10 @@ describe("sitemap.xml", () => {
     expect(urls).toContain("https://portal.example/docs/getting-started/overview");
     expect(urls).toContain("https://portal.example/docs/sharing/link-sharing-and-portal");
     expect(urls).toContain("https://portal.example/docs/reference/updates");
-    // "/" + "/docs" + all 16 declared docs pages.
-    expect(urls).toHaveLength(18);
+    expect(urls).toContain("https://portal.example/docs/features/library-data-and-backups");
+    expect(urls).toContain("https://portal.example/docs/reference/contributing");
+    // "/" + "/docs" + all 18 declared docs pages.
+    expect(urls).toHaveLength(20);
   });
 
   it("never lists snapshot pages (unlisted by design)", () => {
