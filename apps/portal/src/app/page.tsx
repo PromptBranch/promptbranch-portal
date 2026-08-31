@@ -38,14 +38,14 @@ export const metadata: Metadata = {
     url: "/",
     siteName: "PromptBranch",
     type: "website",
-    images: [{ url: "/app-screenshot.png", width: 2880, height: 1630 }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "PromptBranch: Version control for AI prompts",
     description:
       "Local-first version control for AI prompts. Organize, evaluate, and share the prompts you rely on.",
-    images: ["/app-screenshot.png"],
+    images: ["/opengraph-image"],
   },
 };
 
@@ -116,6 +116,15 @@ export default function Home() {
         operatingSystem: "macOS, Windows, Linux",
         description:
           "Local-first desktop app for organizing, versioning, evaluating, and sharing AI prompts.",
+        downloadUrl: LINKS.releases,
+        sameAs: LINKS.repo,
+        screenshot: `${baseUrl}/app-screenshot.png`,
+        featureList: [
+          "Branching version history",
+          "Evidence-based prompt evaluation",
+          "Coding-agent integrations",
+          "Local-first private storage",
+        ],
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       },
     ],

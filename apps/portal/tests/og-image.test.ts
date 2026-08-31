@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import OgImage, { contentType, dynamic, size, truncate } from "@/app/p/[id]/opengraph-image";
+import HomeOgImage, {
+  contentType as homeContentType,
+  size as homeSize,
+} from "@/app/opengraph-image";
 import { getDb, insertSnapshot } from "@/lib/db";
 
 beforeEach(() => {
@@ -53,5 +57,16 @@ describe("truncate", () => {
     const result = truncate("x".repeat(200), 80);
     expect(result).toBe("x".repeat(79) + "…");
     expect(result).toHaveLength(80);
+  });
+});
+
+describe("landing opengraph-image", () => {
+  it("exports a standard social card and renders it as a PNG", async () => {
+    expect(homeSize).toEqual({ width: 1200, height: 630 });
+    expect(homeContentType).toBe("image/png");
+
+    const response = await HomeOgImage();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("image/png");
   });
 });

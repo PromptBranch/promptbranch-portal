@@ -24,6 +24,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     // the browser normalizes the script nonce) before hydration — expected.
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="describedby" href="/llms.txt" type="text/plain" />
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body>{children}</body>

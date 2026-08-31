@@ -28,6 +28,10 @@ export function GET(): Response {
   }
   lines.push(
     "",
+    "## Full documentation",
+    "",
+    `- [Full PromptBranch documentation](${base}/llms-full.txt): complete public documentation in Markdown`,
+    "",
     "## Links",
     "",
     `- [PromptBranch home](${base}/): product overview and downloads`,
