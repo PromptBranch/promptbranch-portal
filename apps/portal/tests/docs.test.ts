@@ -115,4 +115,14 @@ End content
       expect(entry.snippet).toBeTruthy();
     }
   });
+
+  it("indexes the sync guide for listening-port searches", () => {
+    const query = "listening port";
+    const matches = getDocsSearchIndex().filter((entry) =>
+      [entry.title, entry.category, entry.snippet]
+        .some((value) => value.toLowerCase().includes(query)),
+    );
+
+    expect(matches.map((entry) => entry.slug)).toContain("sync/peer-to-peer-sync");
+  });
 });
