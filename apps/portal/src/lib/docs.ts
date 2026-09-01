@@ -157,7 +157,7 @@ export const DOCS_STRUCTURE: Array<{
         slug: "sync/peer-to-peer-sync",
         file: "sync/peer-to-peer-sync.md",
         title: "Sync Between Your Devices",
-        description: "Pair your own desktop devices and keep their libraries up to date.",
+        description: "Pair devices, configure their listening ports, and troubleshoot local-network, VPN, or firewall connections.",
       },
     ],
   },
