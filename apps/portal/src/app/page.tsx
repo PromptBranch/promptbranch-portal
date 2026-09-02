@@ -29,10 +29,10 @@ export const metadata: Metadata = {
   // Absolute: the layout's "%s · PromptBranch" template would double the brand.
   title: { absolute: "PromptBranch: Version control for AI prompts" },
   description:
-    "PromptBranch is a local-first desktop app for organizing, versioning, evaluating, and sharing AI prompts.",
+    "PromptBranch is a local-first desktop prompt library: organize, version, evaluate, and share your AI prompts.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "PromptBranch",
+    title: "PromptBranch: Version control for AI prompts",
     description:
       "Local-first version control for AI prompts. Organize, evaluate, and share the prompts you rely on.",
     url: "/",
@@ -176,8 +176,8 @@ export default function Home() {
               Version control for your AI prompts
             </h1>
             <p className="mt-5 max-w-[46ch] text-lg leading-relaxed text-ink-dim">
-              A local-first desktop app to organize, version, evaluate, and share the prompts you
-              rely on.
+              A local-first prompt library for your desktop: organize, version, evaluate, and
+              share the prompts you rely on.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a
