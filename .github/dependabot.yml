@@ -1,5 +1,6 @@
 # Dependabot version updates.
-# This file only takes effect from the default branch (main).
+# This file only takes effect from the default branch (main), but updates land
+# on dev first and are promoted through the protected dev-to-main flow.
 # Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
 # pnpm uses package-ecosystem "npm". The root pnpm-lock.yaml (lockfileVersion 9.0,
@@ -11,6 +12,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "dev"
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
@@ -26,6 +28,7 @@ updates:
     directory: "/apps/portal"
     schedule:
       interval: "weekly"
+    target-branch: "dev"
     commit-message:
       prefix: "chore(deps)"
 
@@ -33,5 +36,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "dev"
     commit-message:
       prefix: "chore(deps)"
