@@ -91,7 +91,7 @@ export const DOCS_STRUCTURE: Array<{
         slug: "features/prompt-management",
         file: "features/prompt-management.md",
         title: "Manage Prompts & Versions",
-        description: "Edit drafts, save versions, try variations, compare changes, and recover prompts.",
+        description: "Edit, rename, duplicate, compare, and safely delete prompt versions.",
       },
       {
         slug: "features/search-and-organization",
