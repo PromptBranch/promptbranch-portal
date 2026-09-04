@@ -70,6 +70,17 @@ End content
     expect(page?.contentHtml).toMatch(/Check for Updates/);
   });
 
+  it("documents safe version management behavior", async () => {
+    const page = await getDocPage("features/prompt-management");
+
+    expect(page?.description).toBe(
+      "Edit, rename, duplicate, compare, and safely delete prompt versions.",
+    );
+    expect(page?.contentHtml).toContain("duplicate one as a new prompt");
+    expect(page?.contentHtml).toContain("The current version cannot be deleted");
+    expect(page?.contentHtml).toContain("keeps already-published shares live");
+  });
+
   it("rewrites relative .md links into /docs routes", async () => {
     const page = await getDocPage("getting-started/quickstart");
     expect(page?.contentHtml).toContain('href="/docs/features/prompt-management"');
