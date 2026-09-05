@@ -81,6 +81,18 @@ End content
     expect(page?.contentHtml).toContain("keeps already-published shares live");
   });
 
+  it("documents MCP prompt variables and current package commands", async () => {
+    const mcpPage = await getDocPage("integrations/mcp-server");
+    const installationPage = await getDocPage("getting-started/installation");
+
+    expect(mcpPage?.contentHtml).toContain("Dynamic prompt variables");
+    expect(mcpPage?.contentHtml).toContain("needs_input");
+    expect(mcpPage?.contentHtml).toContain("missingVariables");
+    expect(mcpPage?.contentHtml).toContain("@promptbranch/mcp@latest");
+    expect(installationPage?.contentHtml).toContain("@promptbranch/cli@latest");
+    expect(installationPage?.contentHtml).toContain("@promptbranch/mcp@latest");
+  });
+
   it("rewrites relative .md links into /docs routes", async () => {
     const page = await getDocPage("getting-started/quickstart");
     expect(page?.contentHtml).toContain('href="/docs/features/prompt-management"');
