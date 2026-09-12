@@ -5,8 +5,8 @@
   "type": "module",
   "description": "PromptBranch sharing portal: self-hosted Next.js service for unlisted prompt snapshots (JSON API + SSR viewer).",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
@@ -18,7 +18,7 @@
     "better-sqlite3": "13.0.3",
     "diff": "^9.0.0",
     "mermaid": "^11.17.2",
-    "next": "15.5.24",
+    "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "rehype-sanitize": "^6.0.0",
