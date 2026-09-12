@@ -68,6 +68,22 @@ End content
     expect(page?.title).toBe("Updates");
     expect(page?.category).toBe("Configuration & Reference");
     expect(page?.contentHtml).toMatch(/Check for Updates/);
+    expect(page?.contentHtml).toContain("about three seconds");
+    expect(page?.contentHtml).toContain("View update");
+    expect(page?.contentHtml).toContain("Later");
+  });
+
+  it("publishes cross-platform Quick access guidance without framework terms", async () => {
+    const navItem = getDocsNavigation()
+      .flatMap((category) => category.items)
+      .find((item) => item.slug === "features/search-and-organization");
+    const page = await getDocPage("features/search-and-organization");
+
+    expect(navItem?.title).toContain("Quick access");
+    expect(page?.contentHtml).toContain("Ctrl+Shift+Space");
+    expect(page?.contentHtml).toContain("Copy prompt");
+    expect(page?.contentHtml).not.toContain("CommandOrControl");
+    expect(page?.contentHtml).not.toContain("Electron");
   });
 
   it("documents safe version management behavior", async () => {

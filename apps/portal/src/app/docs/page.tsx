@@ -8,7 +8,8 @@ import { MarkdownHtml } from "@/components/markdown";
 
 export const metadata: Metadata = {
   title: "Documentation Overview · PromptBranch",
-  description: "Comprehensive documentation, user guides, API reference, and architecture for PromptBranch.",
+  description:
+    "User guides for installing PromptBranch, managing prompts, connecting tools, sharing, syncing, and updates.",
 };
 
 export default async function DocsRootPage() {

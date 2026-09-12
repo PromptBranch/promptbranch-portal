@@ -96,8 +96,8 @@ export const DOCS_STRUCTURE: Array<{
       {
         slug: "features/search-and-organization",
         file: "features/search-and-organization.md",
-        title: "Search & Organize Prompts",
-        description: "Find prompts and organize them with tags, collections, stars, and notes.",
+        title: "Search, Organize & Use Quick access",
+        description: "Find, organize, preview, and copy saved prompts with Quick access.",
       },
       {
         slug: "features/library-data-and-backups",
