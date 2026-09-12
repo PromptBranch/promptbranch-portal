@@ -5,8 +5,8 @@
   "type": "module",
   "description": "PromptBranch sharing portal: self-hosted Next.js service for unlisted prompt snapshots (JSON API + SSR viewer).",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
