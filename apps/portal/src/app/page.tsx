@@ -12,6 +12,7 @@ import {
   Robot,
   ShieldCheck,
   WindowsLogo,
+  XLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getEnv } from "@/lib/env";
@@ -22,6 +23,7 @@ const LINKS = {
   releases: "https://github.com/PromptBranch/promptbranch/releases",
   docs: "/docs",
   issues: "https://github.com/PromptBranch/promptbranch/issues",
+  x: "https://x.com/PromptBranch",
 } as const;
 
 
@@ -131,7 +133,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex min-h-[100dvh] flex-col overflow-x-hidden">
       {/* JSON-LD is a non-executable data block, so the strict script CSP
           intentionally needs no nonce here — browsers never run it, while
           search engines and AI agents parse it as structured data. */}
@@ -139,12 +141,12 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+      <header className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:h-16 sm:flex-nowrap sm:gap-x-0 sm:px-6 sm:py-0">
         <div className="flex items-center gap-2.5">
           <Image src="/brand-icon.png" alt="" width={26} height={26} className="rounded-md" />
           <span className="text-[15px] font-semibold tracking-tight text-ink">PromptBranch</span>
         </div>
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="ml-auto flex items-center gap-3 text-sm sm:gap-5">
           <Link href={LINKS.docs} className="hidden text-ink-dim transition-colors hover:text-ink sm:block">
             Docs
           </Link>
@@ -154,6 +156,16 @@ export default function Home() {
           >
             <GithubLogo size={16} aria-hidden />
             Source
+          </a>
+          <a
+            href={LINKS.x}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="PromptBranch on X"
+            title="PromptBranch on X"
+            className="rounded-lg border border-line-strong p-2 text-ink-dim transition-colors hover:bg-hover hover:text-ink active:translate-y-[1px]"
+          >
+            <XLogo size={16} aria-hidden />
           </a>
           <ThemeToggle />
           <a
@@ -353,6 +365,16 @@ export default function Home() {
             </Link>
             <a href={LINKS.issues} className="transition-colors hover:text-ink">
               Report an issue
+            </a>
+            <a
+              href={LINKS.x}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="PromptBranch on X"
+              title="PromptBranch on X"
+              className="inline-flex size-8 items-center justify-center rounded-md transition-colors hover:bg-hover hover:text-ink focus-visible:outline-accent"
+            >
+              <XLogo size={18} aria-hidden />
             </a>
           </nav>
         </div>

@@ -5,6 +5,7 @@ import Home, { metadata } from "@/app/page";
 
 const REPO = "https://github.com/PromptBranch/promptbranch";
 const RELEASES = `${REPO}/releases`;
+const X_PROFILE = "https://x.com/PromptBranch";
 
 describe("landing page", () => {
   it("renders the hero with value proposition and primary CTAs", () => {
@@ -92,6 +93,32 @@ describe("landing page", () => {
       `${REPO}/issues`,
     );
     expect(screen.queryByRole("link", { name: "Releases" })).toBeNull();
+  });
+
+  it("links to PromptBranch on X from the header", () => {
+    render(<Home />);
+    const xLink = within(screen.getByRole("banner")).getByRole("link", {
+      name: "PromptBranch on X",
+    });
+    expect(xLink).toHaveAttribute("href", X_PROFILE);
+    expect(xLink.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("allows the header controls to wrap on narrow screens", () => {
+    const { container } = render(<Home />);
+    const header = screen.getByRole("banner");
+    expect(header).toHaveClass("min-h-16", "flex-wrap", "py-3");
+    expect(within(header).getByRole("navigation")).toHaveClass("ml-auto", "gap-3");
+    expect(container.firstElementChild).toHaveClass("overflow-x-hidden");
+  });
+
+  it("links to PromptBranch on X from the footer", () => {
+    render(<Home />);
+    const xLink = within(screen.getByRole("contentinfo")).getByRole("link", {
+      name: "PromptBranch on X",
+    });
+    expect(xLink).toHaveAttribute("href", X_PROFILE);
+    expect(xLink.querySelector("svg")).toBeInTheDocument();
   });
 
   it("contains no em-dashes or en-dashes in visible copy", () => {
