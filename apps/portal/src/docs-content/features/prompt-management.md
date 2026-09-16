@@ -29,8 +29,8 @@ records the displayed version as its parent. If you started from a historical
 version, neither save action changes the prompt's current/default version
 automatically.
 
-The History tab also lets you rename versions, duplicate the selected version
-as a standalone prompt, or compare two versions side by side or as a unified
+The History tab also lets you rename versions, duplicate one as a new prompt
+from the selected version, or compare two versions side by side or as a unified
 diff. Duplicate actions always copy the version displayed or explicitly chosen,
 not an unrelated branch head.
 
