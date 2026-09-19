@@ -207,6 +207,29 @@ export default function Home() {
                 Source code
               </a>
             </div>
+            <div className="mt-6 border-t border-line pt-4 sm:mt-8">
+              <a
+                href={LINKS.x}
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex max-w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-hover active:translate-y-[1px] focus-visible:outline-accent"
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-md bg-accent-soft text-accent ring-1 ring-accent/25 transition-colors group-hover:bg-accent/20">
+                  <XLogo size={17} aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink">Follow us on X</span>
+                  <span className="mt-0.5 block text-xs text-ink-dim">
+                    @PromptBranch for updates, tips, and tricks.
+                  </span>
+                </span>
+                <ArrowUpRight
+                  size={16}
+                  aria-hidden
+                  className="ml-auto shrink-0 text-ink-faint transition-[color,transform] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent"
+                />
+              </a>
+            </div>
           </div>
 
           <div className="relative">
