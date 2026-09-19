@@ -70,6 +70,22 @@ describe("landing page", () => {
     ).toBeInTheDocument();
   });
 
+  it("invites visitors to follow PromptBranch on X from the hero", () => {
+    render(<Home />);
+    const hero = screen
+      .getByRole("heading", { level: 1, name: "Version control for your AI prompts" })
+      .closest("section");
+    expect(hero).toBeInTheDocument();
+    expect(
+      within(hero as HTMLElement).getByText("@PromptBranch for updates, tips, and tricks."),
+    ).toBeInTheDocument();
+    const followLink = within(hero as HTMLElement).getByRole("link", {
+      name: /Follow us on X/,
+    });
+    expect(followLink).toHaveAttribute("href", X_PROFILE);
+    expect(followLink).toHaveAttribute("target", "_blank");
+  });
+
   it("explains prompt sharing and links the customer guide", () => {
     render(<Home />);
     expect(screen.getByRole("heading", { name: "Share a prompt when you choose" })).toBeInTheDocument();
