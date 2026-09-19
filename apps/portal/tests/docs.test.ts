@@ -84,6 +84,7 @@ End content
     expect(page?.contentHtml).toContain("Copy prompt");
     expect(page?.contentHtml).not.toContain("CommandOrControl");
     expect(page?.contentHtml).not.toContain("Electron");
+    expect(page?.contentHtml).toContain("Click the active tag again");
   });
 
   it("documents safe version management behavior", async () => {
@@ -92,7 +93,8 @@ End content
     expect(page?.description).toBe(
       "Edit, rename, duplicate, compare, and safely delete prompt versions.",
     );
-    expect(page?.contentHtml).toContain("duplicate one as a new prompt");
+    expect(page?.contentHtml).toContain("duplicate the selected version");
+    expect(page?.contentHtml).toContain("Copy prompt name");
     expect(page?.contentHtml).toContain("The current version cannot be deleted");
     expect(page?.contentHtml).toContain("keeps already-published shares live");
   });
@@ -107,6 +109,12 @@ End content
     expect(mcpPage?.contentHtml).toContain("@promptbranch/mcp@latest");
     expect(installationPage?.contentHtml).toContain("@promptbranch/cli@latest");
     expect(installationPage?.contentHtml).toContain("@promptbranch/mcp@latest");
+
+    const cliPage = await getDocPage("integrations/cli");
+    const syncPage = await getDocPage("sync/peer-to-peer-sync");
+    expect(cliPage?.contentHtml).toContain("--preview");
+    expect(cliPage?.contentHtml).toContain("Publish this snapshot?");
+    expect(syncPage?.contentHtml).toContain("protocol 4 and sync schema 13");
   });
 
   it("rewrites relative .md links into /docs routes", async () => {

@@ -47,12 +47,16 @@ window exits PromptBranch and disables the shortcut until the app starts again.
 
 Use **Filters** in the library to narrow the list by tag, starred state, or
 minimum rating. Sort prompts by when they were updated or created, by name, or
-by rating. Selecting a collection in the left rail shows its prompts.
+by rating. Selecting a collection in the left rail shows its prompts. To filter
+quickly by one tag, click that tag in the left rail, on a prompt card, or in the
+prompt details pane. Click the active tag again to clear that tag filter; use
+**Clear filters** when you want to reset every active filter.
 
 ## Tags, collections, and stars
 
 - Create a **tag** with the **+** beside Tags, then attach it to related
-  prompts. A prompt can have several tags.
+  prompts. A prompt can have several tags. Tag labels in the left rail are
+  left-aligned so they remain easy to scan as their names get longer.
 - Create a **collection** with the **+** beside Collections. To create a prompt
   inside it, right-click the collection and choose **New Prompt**, or select
   the collection and use the **New prompt** button above the prompt list.
