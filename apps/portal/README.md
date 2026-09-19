@@ -1,6 +1,6 @@
 # PromptBranch Portal
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs&logoColor=white)](./package.json)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)](./package.json)
 [![output](https://img.shields.io/badge/next%20config-output%3A%20standalone-informational)](./next.config.ts)
 [![deploy](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED?logo=docker&logoColor=white)](#deploy)
 
@@ -15,7 +15,7 @@ page and docs are indexable). The official hosted instance is
 > Part of [PromptBranch](../../README.md) · production deployment:
 > [`deploy/portal`](../../deploy/portal/README.md)
 
-Stack: Next.js 15 (App Router, `output: "standalone"`), better-sqlite3 (WAL)
+Stack: Next.js 16 (App Router, `output: "standalone"`), better-sqlite3 (WAL)
 in a single volume, in-memory per-IP rate limits on every route (publish,
 reports, reads — exact numbers under Security notes below). Snapshots render
 server-side through a sanitize-then-highlight pipeline (Shiki dual themes),
