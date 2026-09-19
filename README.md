@@ -4,7 +4,7 @@
 
 **Self-hosted sharing service, snapshot viewer, and API for PromptBranch**
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs&logoColor=white)](./apps/portal/package.json)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)](./apps/portal/package.json)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#production-deployment)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite&logoColor=white)](#configuration)
 [![pnpm](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)](pnpm-workspace.yaml)
@@ -20,7 +20,7 @@ Links are **unlisted by design** — there is no public directory, no indexing o
 ## Repository Layout
 
 ```
-apps/portal         Next.js 15 App Router web service (JSON API + SSR snapshot viewer)
+apps/portal         Next.js 16 App Router web service (JSON API + SSR snapshot viewer)
 packages/share      Sharing contract: snapshot Zod schemas, secret scanner, HTTP client
 deploy/portal       Production VPS deployment bundle: Docker Compose, Nginx Proxy Manager,
                     host-hardening policies (fail2ban, UFW, SSH, auto-upgrades)
