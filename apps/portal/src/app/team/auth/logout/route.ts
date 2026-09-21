@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       const response = NextResponse.json({ ok: true }, { headers: teamBaseHeaders(requestId) });
       response.cookies.set(TEAM_SESSION_COOKIE, "", { path: "/", maxAge: 0, secure: true });
+      response.cookies.set("pb-team-csrf", "", { path: "/", maxAge: 0, secure: true });
       return response;
     }
 
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ ok: true }, { headers: teamBaseHeaders(requestId) });
     response.cookies.set(TEAM_SESSION_COOKIE, "", { path: "/", maxAge: 0, secure: true });
+    response.cookies.set("pb-team-csrf", "", { path: "/", maxAge: 0, secure: true });
     return response;
   } catch (error) {
     return teamErrorResponse(requestId, error);

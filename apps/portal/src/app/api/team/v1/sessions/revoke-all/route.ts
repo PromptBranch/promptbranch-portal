@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const response = teamJson(requestId, { ok: true });
     if (auth.via === "cookie") {
       response.cookies.set(TEAM_SESSION_COOKIE, "", { path: "/", maxAge: 0, secure: true });
+      response.cookies.set("pb-team-csrf", "", { path: "/", maxAge: 0, secure: true });
     }
     return response;
   } catch (error) {

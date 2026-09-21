@@ -21,6 +21,9 @@ const loginLimiter = createRateLimiter({ capacity: 20, windowMs: 10 * 60_000 });
 export async function GET(request: NextRequest) {
   const service = getTeamService();
   const ip = clientIp(request);
+  // Post-login landing: only same-site /team paths, never an open redirect.
+  const requestedNext = new URL(request.url).searchParams.get("next");
+  const next = requestedNext && requestedNext.startsWith("/team/") ? requestedNext : "/team";
   if (!loginLimiter.check(`team-login:${ip}`).ok) {
     return NextResponse.redirect(new URL("/team?auth=rate_limited", request.url), 303);
   }
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
     });
     const response = NextResponse.redirect(authorizationUrl, 303);
     const correlation = service.secretBox.sealToString(
-      JSON.stringify({ state, nonce, codeVerifier, redirectUri }),
+      JSON.stringify({ state, nonce, codeVerifier, redirectUri, next }),
     );
     response.cookies.set(TEAM_AUTH_CORRELATION_COOKIE, correlation, {
       httpOnly: true,

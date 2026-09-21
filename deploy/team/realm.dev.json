@@ -54,10 +54,12 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "http://127.0.0.1:4317/*"
+        "http://127.0.0.1:4317/*",
+        "http://localhost:4317/*"
       ],
       "webOrigins": [
-        "http://127.0.0.1:4317"
+        "http://127.0.0.1:4317",
+        "http://localhost:4317"
       ],
       "attributes": {
         "post.logout.redirect.uris": "http://127.0.0.1:4317/*"

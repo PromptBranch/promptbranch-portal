@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   const correlationRaw = request.cookies.get(TEAM_AUTH_CORRELATION_COOKIE)?.value;
   if (!correlationRaw) return authFailure(request, "invalid_state");
 
-  let correlation: { state: string; nonce: string; codeVerifier: string; redirectUri: string };
+  let correlation: { state: string; nonce: string; codeVerifier: string; redirectUri: string; next?: string };
   try {
     correlation = JSON.parse(service.secretBox.openFromString(correlationRaw));
   } catch {
@@ -85,9 +85,22 @@ export async function GET(request: NextRequest) {
       csrfToken: undefined,
     });
 
-    const response = NextResponse.redirect(new URL("/team", request.url), 303);
+    // Landing target was sealed into the correlation blob at login start;
+    // only same-site /team paths are honored.
+    const landing = correlation.next && correlation.next.startsWith("/team/") ? correlation.next : "/team";
+    const response = NextResponse.redirect(new URL(landing, request.url), 303);
     response.cookies.set(TEAM_SESSION_COOKIE, webSession.token, {
       httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.floor((webSession.expiresAt.getTime() - Date.now()) / 1000),
+    });
+    // Readable companion cookie carrying the CSRF token: same-origin scripts
+    // echo it in the x-pb-team-csrf header; the server compares its hash
+    // against the session row. Never HttpOnly, never sent cross-site (Lax).
+    response.cookies.set("pb-team-csrf", webSession.csrfToken, {
+      httpOnly: false,
       secure: true,
       sameSite: "lax",
       path: "/",

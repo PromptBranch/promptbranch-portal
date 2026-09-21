@@ -7,6 +7,10 @@ import { fileURLToPath } from "node:url";
 // node_modules subset (the Dockerfile relies on that exact layout).
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Dev-only: the reference team stack browses 127.0.0.1 while Next dev
+  // treats localhost as the primary origin; without this, HMR (and with it
+  // hydration) is blocked as a cross-origin dev resource.
+  allowedDevOrigins: ["127.0.0.1"],
   outputFileTracingRoot: join(dirname(fileURLToPath(import.meta.url)), "../.."),
   transpilePackages: ["@promptbranch/share", "@promptbranch/team-server"],
   webpack: (config) => {

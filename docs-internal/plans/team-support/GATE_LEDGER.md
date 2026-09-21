@@ -2,6 +2,64 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P7 complete
+
+Commits:
+
+- `feat(portal): add team workspace browser experience` (P7)
+
+Scope delivered:
+
+- SSR foundation: `lib/team/ssr.ts` (cookie → principal → domain services
+  directly; no loopback HTTP, no second authz), readable `pb-team-csrf`
+  companion cookie (double-submit against the session's stored hash, cleared
+  on logout/revoke-all), `csrf-client.ts` fetch helper carrying protocol +
+  CSRF + epoch headers for every browser mutation.
+- Pages: `/team` picker (+empty state), `/team/new`, workspace-aware shell
+  layout (role badge, Library/Proposals/Members/Settings nav gated by role,
+  theme toggle, sign-out clearing per-tab drafts), library with
+  search/tag/collection/archived filters + maintainer seed form, prompt
+  detail (approved content + hash + verbatim copy + IDs-only
+  promptbranch:// deep link + published history), proposals list with
+  status tabs, proposal editor (sessionStorage per-tab drafts keyed
+  workspace+prompt+base, live diff, download-recovery, beforeunload warning,
+  submit → immutable candidate), proposal detail (candidate hash/version,
+  stale-base rebase path, SELF_REVIEW banner, distinct-reviewer review
+  actions binding exact candidate, withdraw-own, append-only discussion),
+  settings (members/roles/invites with last-owner UI disable + revoke,
+  agent tokens mint/revoke with one-time-copy warning, metadata-only
+  audit, rename + fresh-login/confirm-name delete), `/team/account`
+  sessions, `/team/invitations/accept` (GET previews, POST consumes;
+  login honors a sealed same-site `next` landing).
+- Tests: portal 168 (page-level: unauthenticated redirect, hostile-title
+  escaping, candidate invisibility on detail, IDs-only deep link, viewer
+  CTA hidden, owner-only nav hidden). All gates green.
+
+**Browser gate satisfied with a real drive through the local Keycloak**:
+alice created a workspace → seeded a prompt → submitted a proposal (and saw
+the SELF_REVIEW guard) → invited bob (email delivered by the worker to
+Mailpit, token extracted from the captured body) → signed out → bob signed
+in → accepted the invitation via the emailed link (GET preview + POST
+accept) → approved alice's proposal with a review comment → the database
+confirms the approved head moved to the new revision.
+
+Integration findings (fixed or noted):
+
+- Next dev blocked HMR for the 127.0.0.1 origin (hydration never ran):
+  `allowedDevOrigins: ["127.0.0.1"]` added.
+- Embedded-webview canonicalization to `localhost` split cookies across
+  host spellings and looped the OIDC callback; the dev realm now registers
+  both loopback spellings on the web client and the drive ran on
+  `localhost:4317`.
+- Every browser command form must carry BOTH the epoch header and the
+  membershipGeneration in the envelope (found live: seed 422, invite 422).
+- KNOWN GAP (P9): `scripts/team-worker.mjs` runs the built dist, whose
+  `@promptbranch/share` import resolves to TS source outside Next — worker
+  CLI needs share's exports to point at built output (delivery in tests
+  uses the TS path).
+
+Next: P8 — privacy boundaries, authorization matrix and abuse controls.
+
 ## Record: 2026-09-21, P6 complete
 
 Commits:
