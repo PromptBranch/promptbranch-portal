@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { isTeamError, teamError } from "@promptbranch/team-server";
-import { TEAM_PROTOCOL_HEADER, TEAM_PROTOCOL_VERSION } from "./env";
+import { TEAM_LIMITS, TEAM_PROTOCOL_HEADER, TEAM_PROTOCOL_VERSION } from "./env";
 
 /**
  * Wire conventions for every /api/team/v1 response (contract C2): private
@@ -54,6 +54,9 @@ export function teamErrorResponse(requestId: string, error: unknown): NextRespon
     { status: 503, headers: teamBaseHeaders(requestId) },
   );
 }
+
+/** Wire cap from the contract limits — enforced before reading bodies. */
+export const MAX_TEAM_REQUEST_BYTES = TEAM_LIMITS.maxRequestBytes;
 
 /**
  * Protocol gate: every team API route except discovery requires the client's

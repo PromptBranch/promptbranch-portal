@@ -7,6 +7,11 @@ import pg from "pg";
 import { createTeamPool, type Pool } from "../src/db.js";
 import { runTeamMigrations, packagedMigrationsDir, type MigrationResult } from "../src/migrations.js";
 import { withWorkspaceTransaction, type WorkspaceTransactionOptions, type WorkspaceTx } from "../src/tx.js";
+import { SecretBox } from "../src/auth/crypto.js";
+import type { Principal, Scope } from "../src/auth/principal.js";
+import { executeTeamCommand, type DispatchSuccess } from "../src/commands/dispatch.js";
+import { createWorkspace, type WorkspaceDto } from "../src/domain/workspaces.js";
+import { acceptInvitation } from "../src/domain/invitations.js";
 
 /**
  * Real-PostgreSQL test harness (plan P1). Every suite gets its own scratch
@@ -26,19 +31,8 @@ const DEFAULT_APP_PASSWORD = "team_app_dev_pw";
 /** Synthetic development issuer matching deploy/team/realm.dev.json. */
 export const DEV_ISSUER = "http://127.0.0.1:48080/realms/promptbranch-dev";
 
-export type HumanPrincipal = {
-  kind: "human";
-  userId: string;
-  sessionId: string;
-  authenticatedAt: string;
-};
-
-export type AgentPrincipal = {
-  kind: "agent";
-  userId: string;
-  tokenId: string;
-  scopes: string[];
-};
+export type HumanPrincipal = Extract<Principal, { kind: "human" }>;
+export type AgentPrincipal = Extract<Principal, { kind: "agent" }>;
 
 export interface HarnessUser {
   userId: string;
@@ -50,7 +44,7 @@ export interface HarnessUser {
 export interface HarnessAgent {
   tokenId: string;
   ownerUserId: string;
-  scopes: string[];
+  scopes: Scope[];
   principal: AgentPrincipal;
 }
 
@@ -76,6 +70,9 @@ export interface HarnessService {
     options: WorkspaceTransactionOptions,
     fn: (work: WorkspaceTx) => Promise<T>,
   ): Promise<T>;
+  execute(principal: Principal, workspaceId: string, epoch: string, envelope: unknown): Promise<DispatchSuccess>;
+  createWorkspace(principal: HumanPrincipal, input: { commandId: string; name: string }): Promise<{ workspace: WorkspaceDto; created: boolean }>;
+  acceptInvitation(principal: HumanPrincipal, input: { commandId: string; token: string }): Promise<{ workspace: WorkspaceDto & { role: string }; accepted: boolean }>;
 }
 
 export interface TeamTestHarnessOptions {
@@ -136,11 +133,13 @@ export interface TeamTestHarness {
   adminPool: Pool;
   /** Dedicated connection for concurrency races (holds locks across awaits). */
   raw: pg.Client;
+  /** The synthetic key the service facade seals job payloads with. */
+  secretBox: SecretBox;
   databaseName: string;
   migrationResult: MigrationResult;
   service: HarnessService;
   asUser(name: string, options?: { workspaceId?: string; role?: string }): Promise<HarnessUser>;
-  asAgent(name: string, ownerUserId: string, options?: { scopes?: string[]; workspaceId?: string }): Promise<HarnessAgent>;
+  asAgent(name: string, ownerUserId: string, options?: { scopes?: Scope[]; workspaceId?: string }): Promise<HarnessAgent>;
   createWorkspace(name: string, ownerUserId: string): Promise<HarnessWorkspace>;
   seedPrompt(workspaceId: string, options?: { title?: string; description?: string }): Promise<HarnessPrompt>;
   seedRevision(
@@ -151,6 +150,8 @@ export interface TeamTestHarness {
   publishRevision(workspaceId: string, promptId: string, revisionId: string): Promise<void>;
   insertCrossWorkspaceCandidate(): Promise<never>;
   count(table: string): Promise<number>;
+  /** The synthetic verified email `asUser(name)` maps to. */
+  emailFor(name: string): string;
   migrate(options?: { dir?: URL }): Promise<MigrationResult>;
   /** Runs SQL as the DDL role against the scratch database (e.g. tamper checks). */
   withMigrationClient(fn: (client: pg.ClientBase) => Promise<unknown>): Promise<void>;
@@ -219,10 +220,13 @@ export async function createTeamTestHarness(
   const raw = new pg.Client(appUrl);
   await raw.connect();
 
+  const secretBox = new SecretBox(Buffer.alloc(32, 7)); // synthetic test key
+  const dispatchOptions = { pool, secretBox, publicOrigin: "http://127.0.0.1:4317" };
+
   let closed = false;
 
   async function ensureUser(displayName: string): Promise<{ userId: string; email: string }> {
-    const subject = `synthetic-${displayName.toLowerCase()}`;
+    const subject = `synthetic-${displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
     const email = `${subject}@promptbranch.test`;
     const inserted = await pool.query<{ id: string }>(
       `INSERT INTO team_users (issuer, subject, verified_email, normalized_email, display_name)
@@ -247,11 +251,19 @@ export async function createTeamTestHarness(
     pool,
     adminPool,
     raw,
+    secretBox,
     databaseName,
     migrationResult,
 
     service: {
       withWorkspaceTransaction: (txOptions, fn) => withWorkspaceTransaction(pool, txOptions, fn),
+      execute: (principal, workspaceId, epoch, envelope) =>
+        executeTeamCommand(dispatchOptions, principal, workspaceId, epoch, envelope),
+      createWorkspace: (principal, input) => createWorkspace(pool, principal, input),
+      acceptInvitation: (principal, input) =>
+        acceptInvitation(pool, { principal, secretBox, publicOrigin: dispatchOptions.publicOrigin }, input) as Promise<
+          { workspace: WorkspaceDto & { role: string }; accepted: boolean }
+        >,
     },
 
     async asUser(name, asOptions) {
@@ -407,6 +419,10 @@ export async function createTeamTestHarness(
       const row = result.rows[0];
       if (!row) throw new Error(`harness: count(${table}) returned no row`);
       return Number(row.n);
+    },
+
+    emailFor(name) {
+      return `synthetic-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}@promptbranch.test`;
     },
 
     async migrate(migrateOptions) {

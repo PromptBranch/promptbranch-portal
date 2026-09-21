@@ -14,6 +14,7 @@
     "team:dev:down": "docker compose -f deploy/team/compose.dev.yml down",
     "team:keycloak:init": "node scripts/team-keycloak-init.mjs",
     "team:migrate": "pnpm --filter @promptbranch/team-server build && node scripts/team-migrate.mjs",
+    "team:worker": "pnpm --filter @promptbranch/team-server build && node scripts/team-worker.mjs",
     "team:fixtures": "node scripts/team-fixtures.mjs",
     "test:team": "node scripts/team-test.mjs"
   },

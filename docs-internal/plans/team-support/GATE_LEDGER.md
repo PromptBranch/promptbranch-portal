@@ -2,6 +2,61 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P3 complete
+
+Commits:
+
+- `feat(team): add workspaces invitations and member authorization` (P3)
+
+Scope delivered:
+
+- `commands/`: `operations.ts` (strict Zod for the P3 subset of the PB-TEAM-1
+  operation union — invitation.create/revoke, member.role/remove,
+  workspace.rename/delete — marked for replacement by the D0 contract
+  artifact at G0), `receipts.ts` (canonical-JSON request hashes covering the
+  full envelope + generation; workspace- and user-scoped receipts;
+  COMMAND_ID_REUSED on payload drift), `dispatch.ts` (authz + generation
+  before any receipt lookup, epoch header check, audit + receipt in the
+  mutation transaction, catalogSeq "0" for non-catalogue commands).
+- `domain/`: authorization (fresh membership rows under lock), workspaces
+  (idempotent create, fresh reads, rename, fresh-login + confirm-name soft
+  delete with 30-day purge and job cancellation), memberships (generation
+  rotation on role change/removal/re-add, agent-token revocation on
+  downgrade/removal, last-owner protection), invitations (256-bit hashed
+  tokens, 7-day expiry, identity-bound idempotent acceptance, revoke+create
+  resend, 20/hour/workspace transactional quota), audit (append-only,
+  metadata-only).
+- `jobs/`: transactional outbox (AES-256-GCM payloads), invitation email via
+  nodemailer (first-party accept URL only), SKIP LOCKED claiming, retry
+  ladder 1m/5m/30m/2h, payload secret cleared on success; `pnpm team:worker`
+  loops `runDueJobs` (refuses non-loopback SMTP unless overridden).
+- Portal routes: workspaces GET/POST (+201/200 idempotency), :w GET,
+  members/invitations/audit owner-only reads, invitations/accept POST,
+  :w/commands POST with the X-PromptBranch-Team-Epoch header; read-side
+  `requireMemberRole` helper; 256 KiB content-length pre-checks on POSTs.
+
+Tests: team-server 63 (permissions matrix × every op, last-owner race from
+two concurrent commands, removed-member replay-before-receipt, generation
+semantics + re-add, epoch mismatch, invitation expiry/revoke/identity,
+quota, receipts idempotency/reuse, outbox SKIP LOCKED + ladder, real Mailpit
+delivery with token-absence scan across every team table); portal 158
+(HTTP role matrix, foreign 403-without-metadata, 404 unknown, receipt
+replay over HTTP, CSRF, invitation flow). All gates green (typecheck, test,
+build, whitespace).
+
+Notes / deferred:
+
+- Non-catalogue commands return `catalogSeq: "0"` (sequence allocation is
+  P5); fixture-confirmed semantics arrive with the D0 artifact.
+- Invitation *delivery status* surfacing (job outcome per invitation) needs
+  an invitation_id column on team_jobs — planned as migration 004 with the
+  P7 UI that displays it.
+- Distributed rate buckets (P8) supersede the transactional invitation
+  quota; duplicate-command quota separation also lands in P8 (receipts
+  already make safe retries free).
+
+Next: P4 — approved libraries, immutable revisions and collaboration.
+
 ## Record: 2026-09-21, P2 complete
 
 Commits:
