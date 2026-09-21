@@ -20,7 +20,7 @@ export default async function MembersSettingsPage({ params }: { params: Promise<
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-lg font-semibold">Members</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-ink">Members</h1>
         <ul className="mt-4 space-y-2">
           {members.map((member) => {
             const isLastOwner = member.role === "owner" && ownerCount === 1;

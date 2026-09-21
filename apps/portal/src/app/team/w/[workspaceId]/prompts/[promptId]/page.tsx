@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClockCounterClockwise, NotePencil } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getPromptWithHead, listPublishedRevisions } from "@promptbranch/team-server";
-import { CopyButton } from "@/components/copy-actions";
+import { CodeBox } from "@/components/code-box";
+import { VersionHistory } from "@/components/version-history";
 import { requireWorkspacePage } from "@/lib/team/ssr";
+import { highlightSource } from "@/lib/highlight";
+import { markdownToHtml } from "@/lib/markdown-to-html";
 
-// Approved prompt detail: the CURRENT head revision's exact content, a
-// copy button that copies it verbatim, published history, and a deep link
-// carrying origin/workspace/prompt ids only — never a token or candidate
-// content. React escapes all titles and content by construction.
+// Approved prompt detail — the SAME viewer concept as the shared-snapshot
+// page: mono eyebrow, tag pills, actions row, and the editor-style CodeBox
+// (Rendered/Source toggle + copy) fed by the shared sanitize-then-highlight
+// pipeline. Team surfaces reuse the portal's design language; only the
+// collaboration affordances (history compare, propose-change) are new.
 
 export default async function PromptDetailPage({
   params,
@@ -19,70 +23,80 @@ export default async function PromptDetailPage({
   const { service, workspace } = await requireWorkspacePage(workspaceId);
   const detail = await getPromptWithHead(service.pool, workspaceId, promptId).catch(() => null);
   if (!detail) notFound();
-  const history = await listPublishedRevisions(service.pool, workspaceId, promptId, { limit: 10 });
+  const history = await listPublishedRevisions(service.pool, workspaceId, promptId, { limit: 100 });
   const canPropose = ["owner", "maintainer", "contributor"].includes(workspace.role);
+  // Older-than-current revisions available for comparison (a lone seed has none).
+  const priorRevisions = history.items.filter((revision) => revision.id !== detail.prompt.approvedRevisionId);
+
+  // Same async rendering contract as the snapshot viewer: both views are
+  // computed server-side; CodeBox's toggle only flips visibility.
+  const [contentHtml, sourceHtml] = await Promise.all([
+    markdownToHtml(detail.revision.content),
+    highlightSource(detail.revision.content),
+  ]);
 
   const deepLink = `promptbranch://team/open?origin=${encodeURIComponent(process.env.TEAM_PUBLIC_ORIGIN ?? "")}&workspace=${workspaceId}&prompt=${promptId}`;
+  const created = new Date(detail.revision.createdAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">{detail.prompt.title}</h1>
-          {detail.prompt.description ? <p className="mt-1 max-w-2xl text-sm text-ink-dim">{detail.prompt.description}</p> : null}
-          <p className="mt-2 text-xs text-ink-faint">
-            Approved revision by {detail.revision.author.displayName} · {new Date(detail.revision.createdAt).toLocaleString()}
+      <div className="pt-2">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">Approved prompt</p>
+        <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-ink">
+          {detail.prompt.title}
+        </h1>
+        {detail.prompt.description ? (
+          <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed [text-wrap:pretty] text-ink-dim">
+            {detail.prompt.description}
           </p>
+        ) : null}
+        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink-faint">
+          {detail.prompt.archivedAt ? (
+            <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-faint">
+              archived
+            </span>
+          ) : null}
+          <span className="tabular-nums">
+            Approved revision by {detail.revision.author.displayName} · {created}
+          </span>
         </div>
-        <div className="flex flex-none items-center gap-2">
-          <CopyButton label="Copy prompt" text={detail.revision.content} />
+        <div className="mt-7 flex flex-wrap items-center gap-3">
           <a
             href={deepLink}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-dim transition-colors hover:bg-hover hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong active:translate-y-[1px]"
           >
             Open in PromptBranch
+            <ArrowUpRight size={15} aria-hidden />
           </a>
+          {canPropose ? (
+            <Link
+              href={`/team/w/${workspaceId}/proposals/new?promptId=${promptId}&base=${detail.prompt.approvedRevisionId ?? ""}`}
+              className="rounded-lg border border-line px-3.5 py-2 font-medium text-ink transition-colors hover:bg-hover active:translate-y-[1px]"
+            >
+              Propose a change
+            </Link>
+          ) : null}
         </div>
       </div>
 
-      <section aria-label="Approved content" className="mt-6">
-        <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl border border-line bg-panel p-4 font-mono text-[13px] leading-relaxed text-ink">
-          {detail.revision.content}
-        </pre>
-        <p className="mt-2 font-mono text-[10px] text-ink-faint">sha-256 {detail.revision.contentHash}</p>
-      </section>
+      <CodeBox className="mt-10" contentHtml={contentHtml} sourceHtml={sourceHtml} markdown={detail.revision.content} />
+      <p className="mt-2 font-mono text-[10px] text-ink-faint">sha-256 {detail.revision.contentHash}</p>
 
-      <section aria-label="Published history" className="mt-8">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <ClockCounterClockwise size={14} aria-hidden /> Published history
-        </h2>
-        <ul className="mt-3 space-y-1.5">
-          {history.items.map((revision) => (
-            <li key={revision.id} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-panel px-3.5 py-2.5 text-xs">
-              <span className="min-w-0 truncate text-ink-dim">
-                {revision.id === detail.prompt.approvedRevisionId ? <span className="mr-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-medium uppercase text-accent">current</span> : null}
-                {revision.changeNote || "revision"} — {revision.author.displayName}
-              </span>
-              <CopyButton label="Copy" text={revision.content} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {canPropose ? (
-        <section className="mt-8 rounded-xl border border-line bg-panel p-5">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-            <NotePencil size={14} aria-hidden /> Propose a change
-          </h2>
-          <p className="mt-1 text-xs text-ink-dim">
-            Changes go through review: draft privately in this tab, then submit for a maintainer&apos;s approval.
-          </p>
-          <Link
-            href={`/team/w/${workspaceId}/proposals/new?promptId=${promptId}&base=${detail.prompt.approvedRevisionId ?? ""}`}
-            className="mt-3 inline-flex rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-strong"
-          >
-            New proposal
-          </Link>
+      {priorRevisions.length > 0 ? (
+        <section className="mt-16">
+          <h2 className="text-lg font-semibold tracking-tight text-ink">Published history</h2>
+          <p className="mt-1 text-sm text-ink-dim">Compare any two published revisions of this prompt.</p>
+          <VersionHistory
+            history={priorRevisions
+              .slice()
+              .reverse()
+              .map((revision, index) => ({ version: index + 1, content: revision.content, changeNote: revision.changeNote }))}
+            current={detail.revision.content}
+          />
         </section>
       ) : null}
     </div>

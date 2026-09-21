@@ -113,7 +113,7 @@ export function AcceptInvitationButton(props: { token: string; disabled?: boolea
           setDone({ name: workspace.name, id: workspace.id });
           router.refresh();
         }}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50"
+        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50"
       >
         {pending ? "Accepting…" : "Accept invitation"}
       </button>

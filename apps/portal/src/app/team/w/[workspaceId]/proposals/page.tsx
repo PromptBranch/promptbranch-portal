@@ -39,7 +39,7 @@ export default async function ProposalsPage({
 
   return (
     <div>
-      <h1 className="text-lg font-semibold">Proposals</h1>
+      <h1 className="text-lg font-semibold tracking-tight text-ink">Proposals</h1>
       <div className="mt-3 flex gap-1.5 text-xs">
         {TABS.map((tab) => (
           <Link

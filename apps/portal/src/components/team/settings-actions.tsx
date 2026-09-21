@@ -143,7 +143,7 @@ export function InviteForm(props: { epoch: string; membershipGeneration: string;
           </option>
         ))}
       </select>
-      <button type="submit" disabled={pending || email.length === 0} className="rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50">
+      <button type="submit" disabled={pending || email.length === 0} className="rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50">
         {pending ? "Inviting…" : "Invite"}
       </button>
       <div className="w-full">
@@ -277,7 +277,7 @@ export function MintTokenForm(props: { workspaceId: string; canWriteScopes: bool
           </div>
         </div>
       ) : null}
-      <button type="submit" disabled={pending || name.trim().length === 0} className="rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50">
+      <button type="submit" disabled={pending || name.trim().length === 0} className="rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50">
         {pending ? "Minting…" : "Mint token"}
       </button>
     </form>

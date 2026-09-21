@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { BookOpen, Gear, GitBranch, Users } from "@phosphor-icons/react/dist/ssr";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -45,8 +46,9 @@ export default async function WorkspaceLayout({
     <div className="min-h-screen bg-app text-ink">
       <header className="sticky top-0 z-10 border-b border-line bg-panel/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <Link href="/team" className="text-[15px] font-semibold tracking-tight">
-            PromptBranch
+          <Link href="/team" className="flex items-center gap-2.5">
+            <Image src="/brand-icon.png" alt="" width={26} height={26} className="rounded-md" />
+            <span className="text-[15px] font-semibold tracking-tight text-ink">PromptBranch</span>
           </Link>
           <span className="text-ink-faint">/</span>
           <span className="truncate text-sm font-medium text-ink-dim">{workspace.name}</span>

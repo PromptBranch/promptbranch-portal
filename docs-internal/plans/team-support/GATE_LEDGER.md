@@ -2,6 +2,41 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, post-P7 design alignment
+
+User-directed pass (not a plan phase): reuse the existing portal design
+language everywhere in the team UI instead of parallel/invented patterns.
+
+Commit:
+
+- `style(portal): align team workspace UI with portal design language`
+
+What changed:
+
+- Prompt detail now mirrors the public `/p/:id` viewer exactly: mono accent
+  eyebrow ("Approved prompt"), `text-3xl` title, the real rendering pipeline
+  (`markdownToHtml` + `highlightSource` in `Promise.all`, sanitize-before-
+  highlight shared with the viewer) rendered through the shared `CodeBox`
+  (traffic-light bar, "prompt.md" title, Rendered/Source toggle, Copy in the
+  bar), sha-256 faint meta line, and `VersionHistory` (From/To selects,
+  `.diff-view` lines) for prior published revisions.
+- Proposal detail + editor diffs replaced bespoke `<pre>`s with the
+  `code-box` structure and `.diff-view`/`.diff-line` classes from
+  `version-history.tsx` (candidate.md / prompt.md titles).
+- Shell and picker headers use the brand icon + PromptBranch wordmark
+  treatment from the landing topbar; Library tags/collections use the
+  portal pill tokens; section headings normalized to
+  `tracking-tight text-ink`; accent buttons gained the portal's
+  `active:translate-y-[1px]` micro-interaction.
+- Tests updated for the (correct) new behavior: markdown + Shiki panes both
+  carry the content text, Copy lives inside CodeBox, fixture seeds a prior
+  revision so the history compare renders.
+
+Gates after the pass: `pnpm typecheck`, `pnpm test` (323), `pnpm build`,
+`git diff --check` — all green; verified in-browser on the drive workspace
+(dark tokens, code-box chrome, diff colors consistent with the viewer).
+`next-env.d.ts` churn from the dev server was reverted, not committed.
+
 ## Record: 2026-09-21, P7 complete
 
 Commits:

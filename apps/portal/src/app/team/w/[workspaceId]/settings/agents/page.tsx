@@ -14,7 +14,7 @@ export default async function AgentTokensSettingsPage({ params }: { params: Prom
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-lg font-semibold">Agent tokens</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-ink">Agent tokens</h1>
         <p className="mt-1 max-w-xl text-xs text-ink-dim">
           Scoped workspace capabilities for CLI/MCP agents. Effective access is always the token scopes ∩ your current role;
           role changes and removals revoke them immediately.

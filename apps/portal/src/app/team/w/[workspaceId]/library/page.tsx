@@ -36,7 +36,7 @@ export default async function LibraryPage({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">{showArchived ? "Archived prompts" : "Library"}</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-ink">{showArchived ? "Archived prompts" : "Library"}</h1>
         <form action="" method="get" className="flex items-center gap-2" role="search">
           <div className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2">
             <MagnifyingGlass size={14} aria-hidden className="text-ink-faint" />
@@ -107,14 +107,14 @@ export default async function LibraryPage({
                   ) : null}
                 </span>
                 {prompt.description ? <span className="mt-0.5 block truncate text-xs text-ink-dim">{prompt.description}</span> : null}
-                <span className="mt-1.5 flex flex-wrap gap-1">
+                <span className="mt-1.5 flex flex-wrap gap-1.5">
                   {prompt.tagIds.map((tagId) => (
-                    <span key={tagId} className="rounded-full bg-raised px-2 py-0.5 text-[10px] text-ink-faint">
+                    <span key={tagId} className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-[10px] font-medium text-ink-dim">
                       {tagById.get(tagId) ?? "tag"}
                     </span>
                   ))}
                   {prompt.collectionIds.map((collectionId) => (
-                    <span key={collectionId} className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] text-accent">
+                    <span key={collectionId} className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-[10px] font-medium text-accent">
                       {collectionById.get(collectionId) ?? "collection"}
                     </span>
                   ))}

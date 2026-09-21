@@ -80,18 +80,33 @@ export default async function ProposalDetailPage({
       </section>
 
       <section aria-label="Candidate diff">
-        <h2 className="mb-2 text-sm font-semibold">Change against base</h2>
-        <div className="overflow-hidden rounded-xl border border-line bg-panel font-mono text-[12px] leading-relaxed">
-          {diff.map((part, index) => (
-            <pre
-              key={index}
-              className={`whitespace-pre-wrap px-4 py-1 ${
-                part.added ? "bg-diff-add-bg text-diff-add-text" : part.removed ? "bg-diff-del-bg text-diff-del-text" : "text-ink-dim"
-              }`}
-            >
-              {part.value || "\u00a0"}
+        <h2 className="text-lg font-semibold tracking-tight text-ink">Change against base</h2>
+        <div className="code-box mt-4" data-view="rendered">
+          <header className="code-box-bar">
+            <span className="code-box-dots" aria-hidden>
+              <i /> <i /> <i />
+            </span>
+            <span className="code-box-title">candidate.md</span>
+            <span className="text-xs tabular-nums text-ink-faint">base → candidate</span>
+          </header>
+          <div className="code-box-pane overflow-x-auto">
+            <pre className="diff-view font-mono text-[13px] leading-relaxed">
+              {diff.map((part, index) => (
+                <div
+                  key={index}
+                  className={
+                    part.added
+                      ? "diff-line bg-diff-add-bg text-diff-add-text"
+                      : part.removed
+                        ? "diff-line bg-diff-del-bg text-diff-del-text"
+                        : "diff-line text-ink-dim"
+                  }
+                >
+                  {part.value.replace(/\n$/, "")}
+                </div>
+              ))}
             </pre>
-          ))}
+          </div>
         </div>
       </section>
 

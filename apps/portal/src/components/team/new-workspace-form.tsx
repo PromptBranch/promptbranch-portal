@@ -50,7 +50,7 @@ export function NewWorkspaceForm() {
       <button
         type="submit"
         disabled={pending || name.trim().length === 0}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create workspace"}
       </button>

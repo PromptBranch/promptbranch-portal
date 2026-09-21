@@ -76,13 +76,7 @@ export function ProposalEditor(props: {
   }
 
   const diff = useMemo(
-    () =>
-      diffLines(props.baseContent, draft.content || "").map((part, index) => ({
-        index,
-        added: part.added,
-        removed: part.removed,
-        text: part.value,
-      })),
+    () => diffLines(props.baseContent, draft.content || ""),
     [props.baseContent, draft.content],
   );
 
@@ -161,17 +155,31 @@ export function ProposalEditor(props: {
         </label>
         <div>
           <span className="mb-1.5 block text-sm font-medium text-ink-dim">Diff against base</span>
-          <div aria-label="Diff against base" className="max-h-[420px] overflow-auto rounded-lg border border-line bg-panel font-mono text-[12px] leading-relaxed">
-            {diff.map((part) => (
-              <pre
-                key={part.index}
-                className={`whitespace-pre-wrap px-3 py-1 ${
-                  part.added ? "bg-diff-add-bg text-diff-add-text" : part.removed ? "bg-diff-del-bg text-diff-del-text" : "text-ink-dim"
-                }`}
-              >
-                {part.text || "\u00a0"}
+          <div aria-label="Diff against base" className="code-box max-h-[460px] overflow-y-auto" data-view="rendered">
+            <header className="code-box-bar">
+              <span className="code-box-dots" aria-hidden>
+                <i /> <i /> <i />
+              </span>
+              <span className="code-box-title">candidate.md</span>
+            </header>
+            <div className="code-box-pane overflow-x-auto">
+              <pre className="diff-view font-mono text-[13px] leading-relaxed">
+                {diff.map((part, index) => (
+                  <div
+                    key={index}
+                    className={
+                      part.added
+                        ? "diff-line bg-diff-add-bg text-diff-add-text"
+                        : part.removed
+                          ? "diff-line bg-diff-del-bg text-diff-del-text"
+                          : "diff-line text-ink-dim"
+                    }
+                  >
+                    {part.value.replace(/\n$/, "")}
+                  </div>
+                ))}
               </pre>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -194,7 +202,7 @@ export function ProposalEditor(props: {
           type="button"
           onClick={submit}
           disabled={pending || draft.content.trim().length === 0 || draft.rationale.trim().length === 0}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50"
         >
           {pending ? "Submitting…" : "Submit for review"}
         </button>

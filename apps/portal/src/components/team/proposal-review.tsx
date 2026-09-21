@@ -198,7 +198,7 @@ export function CommentBox(props: { workspaceId: string; proposalId: string; mem
           setBody("");
           router.refresh();
         }}
-        className="mt-2 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+        className="mt-2 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50"
       >
         {pending ? "Posting…" : "Comment"}
       </button>

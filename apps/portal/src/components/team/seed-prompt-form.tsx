@@ -73,7 +73,7 @@ export function SeedPromptForm(props: { workspaceId: string; membershipGeneratio
         </p>
       ) : null}
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-white hover:bg-accent-strong disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-white hover:bg-accent-strong active:translate-y-[1px] disabled:opacity-50">
           {pending ? "Seeding…" : "Seed prompt"}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-line px-3 py-2 text-xs text-ink-dim hover:bg-hover">

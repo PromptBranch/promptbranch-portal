@@ -15,7 +15,7 @@ export default async function GeneralSettingsPage({ params }: { params: Promise<
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-lg font-semibold">General</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-ink">General</h1>
         <div className="mt-4 max-w-xl">
           <RenameWorkspaceForm epoch={workspace.serverEpoch} membershipGeneration={workspace.membershipGeneration} workspaceId={workspaceId} currentName={workspace.name} entityVersion={workspace.entityVersion} />
         </div>

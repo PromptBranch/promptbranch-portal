@@ -14,7 +14,7 @@ export default async function AuditSettingsPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <h1 className="text-lg font-semibold">Audit</h1>
+      <h1 className="text-lg font-semibold tracking-tight text-ink">Audit</h1>
       <p className="mt-1 text-xs text-ink-faint">Actor, time and resource only — never prompt content or credentials.</p>
       {audit.length === 0 ? (
         <p className="mt-4 rounded-xl border border-line bg-panel p-6 text-sm text-ink-dim">No audit entries yet.</p>

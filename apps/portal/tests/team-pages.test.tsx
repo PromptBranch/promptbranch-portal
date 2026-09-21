@@ -159,15 +159,17 @@ describe("library", () => {
     });
     mocks.listPublishedRevisions.mockResolvedValue({
       items: [
-        { id: "r1", workspaceId: "w1", promptId: "p1", parentRevisionId: null, content: "approved body text", contentFormat: "markdown", contentHash: "a".repeat(64), changeNote: "", author: { userId: "u", displayName: "Alice", agentTokenId: null }, createdAt: new Date().toISOString() },
+        { id: "r1", workspaceId: "w1", promptId: "p1", parentRevisionId: "r0", content: "approved body text", contentFormat: "markdown", contentHash: "a".repeat(64), changeNote: "", author: { userId: "u", displayName: "Alice", agentTokenId: null }, createdAt: new Date().toISOString() },
+        { id: "r0", workspaceId: "w1", promptId: "p1", parentRevisionId: null, content: "older body", contentFormat: "markdown", contentHash: "b".repeat(64), changeNote: "seed", author: { userId: "u", displayName: "Alice", agentTokenId: null }, createdAt: new Date(Date.now() - 86400000).toISOString() },
       ],
       nextPageToken: null,
     });
     const { container } = render(
       await PromptDetailPage({ params: Promise.resolve({ workspaceId: "w1", promptId: "p1" }) }),
     );
-    expect(screen.getByText("approved body text")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Copy prompt" })).toBeVisible();
+    // CodeBox renders the markdown pane AND the Shiki source pane.
+    expect(screen.getAllByText("approved body text").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("button", { name: "Copy" }).length).toBeGreaterThanOrEqual(1);
     expect(container.textContent).not.toContain("unapproved");
     // Deep link carries ids only — never tokens or content.
     const deepLink = container.querySelector('a[href^="promptbranch://team/open?"]') as HTMLAnchorElement;
