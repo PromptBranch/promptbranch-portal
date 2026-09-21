@@ -5,7 +5,8 @@
   "type": "module",
   "description": "PromptBranch team workspaces server foundation: PostgreSQL storage, forward-only migrations and workspace transactions. Server-only; never imported by browser code.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./migrations": "./src/migrations.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -13,6 +14,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "jose": "6.2.12",
+    "openid-client": "6.8.8",
     "pg": "8.23.0",
     "zod": "4.6.5"
   },

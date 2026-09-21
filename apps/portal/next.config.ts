@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: join(dirname(fileURLToPath(import.meta.url)), "../.."),
-  transpilePackages: ["@promptbranch/share"],
+  transpilePackages: ["@promptbranch/share", "@promptbranch/team-server"],
   webpack: (config) => {
     config.resolve.extensionAlias = { ".js": [".ts", ".js"] };
     return config;

@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const distIndex = join(repoRoot, "packages", "team-server", "dist", "index.js");
+const distMigrations = join(repoRoot, "packages", "team-server", "dist", "migrations.js");
 
 // deploy/team/.env supplies local-stack defaults; real environment wins.
 function loadLocalEnv() {
@@ -22,8 +22,8 @@ function loadLocalEnv() {
 }
 loadLocalEnv();
 
-if (!existsSync(distIndex)) {
-  console.error("team:migrate: packages/team-server/dist/index.js is missing.");
+if (!existsSync(distMigrations)) {
+  console.error("team:migrate: packages/team-server/dist/migrations.js is missing.");
   console.error("  Build first: pnpm --filter @promptbranch/team-server build");
   process.exit(1);
 }
@@ -43,7 +43,7 @@ if (!["127.0.0.1", "::1", "localhost"].includes(parsed.hostname) && process.env.
   process.exit(1);
 }
 
-const { runTeamMigrations } = await import(`file://${distIndex}`);
+const { runTeamMigrations } = await import(`file://${distMigrations}`);
 
 try {
   const result = await runTeamMigrations({
