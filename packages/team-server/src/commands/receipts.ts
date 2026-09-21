@@ -30,6 +30,8 @@ export interface StoredReceipt {
     kind: string;
     id: string;
     entityVersion?: number;
+    /** Internal: original catalogue sequence for replay; stripped for clients. */
+    _catalogSeq?: string;
   };
   committedAt: Date;
 }

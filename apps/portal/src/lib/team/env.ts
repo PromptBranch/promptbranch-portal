@@ -28,6 +28,8 @@ export const teamEnvSchema = z.object({
   TEAM_PUBLIC_ORIGIN: z.url(),
   TEAM_SERVER_ID: uuid,
   TEAM_SERVER_EPOCH: uuid,
+  /** Optional dedicated HMAC key for bootstrap page tokens and cursors. */
+  TEAM_CURSOR_SIGNING_KEY: z.string().min(16).optional(),
   /** Test-only override: inline JWKS JSON instead of the issuer's endpoint. */
   TEAM_OIDC_JWKS_JSON: z.string().optional(),
 });
@@ -53,6 +55,7 @@ export function getTeamEnv(source: NodeJS.ProcessEnv = process.env): TeamEnv {
     TEAM_PUBLIC_ORIGIN: source.TEAM_PUBLIC_ORIGIN,
     TEAM_SERVER_ID: source.TEAM_SERVER_ID,
     TEAM_SERVER_EPOCH: source.TEAM_SERVER_EPOCH,
+    TEAM_CURSOR_SIGNING_KEY: source.TEAM_CURSOR_SIGNING_KEY,
     TEAM_OIDC_JWKS_JSON: source.TEAM_OIDC_JWKS_JSON,
   });
 }

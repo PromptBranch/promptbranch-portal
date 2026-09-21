@@ -108,6 +108,7 @@ describe("migration chain", () => {
       "001-team-foundation.sql",
       "002-team-content.sql",
       "003-team-sync-operations.sql",
+      "004-team-sync-retention.sql",
     ]);
     expect(h.migrationResult.alreadyApplied).toEqual([]);
 
@@ -117,6 +118,7 @@ describe("migration chain", () => {
       "001-team-foundation.sql",
       "002-team-content.sql",
       "003-team-sync-operations.sql",
+      "004-team-sync-retention.sql",
     ]);
 
     const tables = await h.pool.query<{ n: string }>(
@@ -131,7 +133,7 @@ describe("migration chain", () => {
     expect(h.migrationResult.applied).toEqual(["001-team-foundation.sql"]);
 
     const upgrade = await h.migrate();
-    expect(upgrade.applied).toEqual(["002-team-content.sql", "003-team-sync-operations.sql"]);
+    expect(upgrade.applied).toEqual(["002-team-content.sql", "003-team-sync-operations.sql", "004-team-sync-retention.sql"]);
     expect(await h.count("team_prompts")).toBe(0);
   });
 
@@ -140,8 +142,8 @@ describe("migration chain", () => {
     const [a, b] = await Promise.all([h.migrate(), h.migrate()]);
     // Both runners succeed; each migration file lands exactly once.
     const applied = [...a.applied, ...b.applied];
-    expect(applied).toEqual(["002-team-content.sql", "003-team-sync-operations.sql"]);
-    expect(await h.count("team_schema_migrations")).toBe(3);
+    expect(applied).toEqual(["002-team-content.sql", "003-team-sync-operations.sql", "004-team-sync-retention.sql"]);
+    expect(await h.count("team_schema_migrations")).toBe(4);
   });
 
   it("refuses to run when an applied migration's checksum changed", async () => {

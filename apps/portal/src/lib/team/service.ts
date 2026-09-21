@@ -1,4 +1,5 @@
 import {
+  CursorSigner,
   SecretBox,
   Sessions,
   createAccessTokenValidator,
@@ -26,6 +27,7 @@ export interface TeamService {
   accessTokenValidator: AccessTokenValidator;
   webOidc: WebOidcClient;
   secretBox: SecretBox;
+  cursorSigner: CursorSigner;
 }
 
 const globalStore = globalThis as { __promptbranchTeamService?: TeamService | null };
@@ -55,6 +57,10 @@ export function getTeamService(): TeamService | null {
         clientSecret: env.TEAM_WEB_CLIENT_SECRET,
       }),
       secretBox,
+      cursorSigner: CursorSigner.fromEnv({
+        cursorKeyBase64: env.TEAM_CURSOR_SIGNING_KEY,
+        sessionKeyBase64: env.TEAM_SESSION_ENCRYPTION_KEY,
+      }),
     };
     globalStore.__promptbranchTeamService = service;
     return service;

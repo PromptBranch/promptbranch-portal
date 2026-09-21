@@ -171,6 +171,7 @@ export async function withdrawProposal(
 
 export interface ReviewOutcome {
   entityVersion: number;
+  promptId: string;
   approvedRevisionId?: string;
 }
 
@@ -241,7 +242,7 @@ export async function reviewProposal(
       resourceId: proposal.id,
       metadata: { decision: "reject" },
     });
-    return { entityVersion: proposal.entity_version + 1 };
+    return { entityVersion: proposal.entity_version + 1, promptId: proposal.prompt_id };
   }
 
   // Approval: head = base = expectedApprovedRevisionId, prompt not archived.
@@ -277,7 +278,7 @@ export async function reviewProposal(
     resourceId: proposal.id,
     metadata: { decision: "approve", revisionId: proposal.candidate_revision_id },
   });
-  return { entityVersion: proposal.entity_version + 1, approvedRevisionId: proposal.candidate_revision_id };
+  return { entityVersion: proposal.entity_version + 1, promptId: proposal.prompt_id, approvedRevisionId: proposal.candidate_revision_id };
 }
 
 /** Terminal decision is unique per proposal — the review row closes it. */

@@ -2,6 +2,62 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P5 complete
+
+Commits:
+
+- `feat(sync): serve consistent team catalogue changes` (P5)
+
+Scope delivered:
+
+- `sync/changes.ts`: per-workspace sequences allocated from
+  `next_catalog_seq` under the workspace row lock (the same lock every
+  mutation takes) so sequence order and commit order can never disagree —
+  proven by the two-connection test (an uncommitted allocation blocks later
+  ones and stays invisible to readers). Feed reader enforces cursor rules:
+  malformed/future → VALIDATION_FAILED, below the retained floor →
+  CURSOR_EXPIRED, byte-bounded pages that never split a record, byte-stable
+  payloads for duplicate delivery.
+- `sync/catalog-records.ts`: CatalogRecord SQL builders (prompt/revision/
+  tag/collection per contract §C3) used both by the feed and the bootstrap;
+  candidates are structurally absent (publications join).
+- Dispatch wiring: catalogue commands now emit grouped events in the
+  mutation transaction — approval lands revision + head movement in ONE
+  event; seeds emit prompt + revision; tag/collection deletes emit compact
+  cascade tombstones; comments/membership/invitation commands emit nothing.
+  Receipts carry the real `catalogSeq` (stored internally in the receipt
+  payload so replays report the original sequence; clients see {kind,id,…}).
+- `sync/bootstrap.ts`: repeatable-read materialization under the workspace
+  lock with highWater captured from the same state; SQL INSERT … SELECT for
+  rows (no app-side buffering); reuse-until-expiry (200) vs replace (201);
+  HMAC-signed page tokens bound to snapshot+offset (`sync/cursors.ts`,
+  TEAM_CURSOR_SIGNING_KEY or domain-separated derivation from the session
+  key); access/epoch/generation rechecked on every page.
+- `sync/retention.ts` + worker: bootstrap rows expire after 10 minutes,
+  events after 30 days; the minimum valid cursor (floor = newest deleted
+  sequence — a client AT that cursor lost nothing) advances transactionally
+  with the deletes, so pruning can never manufacture a gap.
+- Migration `004-team-sync-retention.sql` (min_retained_seq column).
+- Portal routes: `POST /workspaces/:w/bootstrap` (201/200), `GET
+  /workspaces/:w/bootstrap/:s` (paged, signed tokens), `GET
+  /workspaces/:w/changes` (epoch/generation rebinding enforced).
+
+Tests: team-server 86 (grouped approval event, candidate-invisible-until-
+approval, tombstones, no-event commands, commit-order two-connection
+invariant, cursor matrix, retention floor, bootstrap lifecycle: reuse/
+replace/expiry/paging/tamper/foreign-principal/membership+epoch rechecks);
+portal 160 (bootstrap→page→change-stream happy path, 201-vs-200 reuse,
+MEMBERSHIP_CHANGED on stale generation, future-cursor 422). All gates green
+including `pnpm team:migrate` applying 004 against the live stack.
+
+Deferred (as planned): main-repo D3 consumer fixtures against these routes
+are pending the contract artifact (recorded like G1's native leg); feed
+bootstrap/changes expiry as enqueued jobs (the worker's per-tick sweep
+covers the same retention semantics now); `X-PromptBranch-Team-Epoch`
+response headers on feed reads arrive with P8's header sweep.
+
+Next: P6 — scoped agent tokens, notes and run summaries.
+
 ## Record: 2026-09-21, P4 complete
 
 Commits:

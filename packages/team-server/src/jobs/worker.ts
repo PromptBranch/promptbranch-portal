@@ -2,6 +2,7 @@ import type { Pool } from "../db.js";
 import type { SecretBox } from "../auth/crypto.js";
 import { claimDueJobs, completeJob, failJob, type ClaimedJob } from "./outbox.js";
 import { sendInvitationEmail, type InvitationEmailPayload } from "./email.js";
+import { sweepExpiredSyncState } from "../sync/retention.js";
 
 /**
  * Job worker tick. Runs one claim-deliver-settle cycle; the CLI wrapper
@@ -47,6 +48,9 @@ async function handle(job: ClaimedJob, options: WorkerOptions): Promise<void> {
 }
 
 export async function runDueJobs(options: WorkerOptions): Promise<WorkerTickResult> {
+  // Retention rides along with every tick: bootstrap rows expire after 10
+  // minutes, feed events after 30 days, floor advanced transactionally.
+  await sweepExpiredSyncState(options.pool).catch(() => undefined);
   const jobs = await claimDueJobs(options.pool, { limit: options.batchSize ?? 10, secretBox: options.secretBox });
   let done = 0;
   let failed = 0;

@@ -18,6 +18,7 @@ import { createInvitation, revokeInvitation } from "../domain/invitations.js";
 import { seedPrompt, updatePromptMetadata, setPromptArchived, rollbackPrompt } from "../domain/prompts.js";
 import { submitProposal, withdrawProposal, reviewProposal, addComment } from "../domain/proposals.js";
 import { createOrgEntity, renameOrgEntity, deleteOrgEntity, type OrgEntity } from "../domain/organization.js";
+import { appendCatalogChange } from "../sync/changes.js";
 import type { SecretBox } from "../auth/crypto.js";
 
 /**
@@ -101,11 +102,14 @@ export async function executeTeamCommand(
       if (!stored.rows[0] || !stored.rows[0].request_hash.equals(hash)) {
         throw teamError("COMMAND_ID_REUSED", "commandId was already used with a different request");
       }
+      // The internal _catalogSeq key rides in the stored receipt so replays
+      // report the original sequence; clients only ever see {kind,id,...}.
+      const { _catalogSeq, ...clientResult } = existing.resultJson as { kind: string; id: string; entityVersion?: number; _catalogSeq?: string };
       return {
         commandId: envelope.commandId,
         committedAt: existing.committedAt.toISOString(),
-        catalogSeq: "0",
-        result: existing.resultJson,
+        catalogSeq: _catalogSeq ?? "0",
+        result: clientResult,
       };
     }
 
@@ -118,6 +122,9 @@ export async function executeTeamCommand(
 
     let result: { kind: string; id: string; entityVersion?: number };
     let extras: { invitationToken?: string; invitationExpiresAt?: string; mediumFindings?: unknown[] } = {};
+    // Catalogue-changing commands emit their grouped feed event in the SAME
+    // transaction and report the allocated sequence; everything else is "0".
+    let catalogSeq = "0";
     switch (envelope.operation.type) {
       case "workspace.rename": {
         const updated = await renameWorkspace(tx, workspaceId, principal, envelope.operation);
@@ -171,11 +178,19 @@ export async function executeTeamCommand(
       case "prompt.create": {
         const seeded = await seedPrompt(tx, { workspaceId, actor: principal, ...envelope.operation });
         result = { kind: "prompt", id: seeded.promptId, entityVersion: seeded.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, {
+          workspaceId,
+          records: [
+            { kind: "prompt", id: seeded.promptId },
+            { kind: "revision", id: seeded.revisionId },
+          ],
+        });
         break;
       }
       case "prompt.metadata": {
         const updated = await updatePromptMetadata(tx, { workspaceId, actor: principal, ...envelope.operation });
         result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, { workspaceId, records: [{ kind: "prompt", id: envelope.operation.promptId }] });
         break;
       }
       case "prompt.archive":
@@ -188,11 +203,13 @@ export async function executeTeamCommand(
           expectedEntityVersion: envelope.operation.expectedEntityVersion,
         });
         result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, { workspaceId, records: [{ kind: "prompt", id: envelope.operation.promptId }] });
         break;
       }
       case "prompt.rollback": {
         const updated = await rollbackPrompt(tx, { workspaceId, actor: principal, ...envelope.operation });
         result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, { workspaceId, records: [{ kind: "prompt", id: envelope.operation.promptId }] });
         break;
       }
       case "proposal.submit": {
@@ -211,6 +228,17 @@ export async function executeTeamCommand(
       case "proposal.review": {
         const reviewed = await reviewProposal(tx, { workspaceId, reviewer: principal, ...envelope.operation });
         result = { kind: "review", id: envelope.operation.proposalId, entityVersion: reviewed.entityVersion };
+        if (reviewed.approvedRevisionId) {
+          // The candidate became catalogue content: revision + new head in
+          // one grouped event (contract §C7).
+          catalogSeq = await appendCatalogChange(tx, {
+            workspaceId,
+            records: [
+              { kind: "revision", id: reviewed.approvedRevisionId },
+              { kind: "prompt", id: reviewed.promptId },
+            ],
+          });
+        }
         break;
       }
       case "comment.add": {
@@ -223,6 +251,7 @@ export async function executeTeamCommand(
         const entity: OrgEntity = envelope.operation.type === "tag.create" ? "tag" : "collection";
         const created = await createOrgEntity(tx, { entity, workspaceId, actor: principal, name: envelope.operation.name });
         result = { kind: entity, id: created.id, entityVersion: created.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, { workspaceId, records: [{ kind: entity, id: created.id }] });
         break;
       }
       case "tag.rename":
@@ -230,6 +259,7 @@ export async function executeTeamCommand(
         const entity: OrgEntity = envelope.operation.type === "tag.rename" ? "tag" : "collection";
         const updated = await renameOrgEntity(tx, { entity, workspaceId, actor: principal, ...envelope.operation });
         result = { kind: entity, id: envelope.operation.id, entityVersion: updated.entityVersion };
+        catalogSeq = await appendCatalogChange(tx, { workspaceId, records: [{ kind: entity, id: envelope.operation.id }] });
         break;
       }
       case "tag.delete":
@@ -237,6 +267,12 @@ export async function executeTeamCommand(
         const entity: OrgEntity = envelope.operation.type === "tag.delete" ? "tag" : "collection";
         await deleteOrgEntity(tx, { entity, workspaceId, actor: principal, ...envelope.operation });
         result = { kind: entity, id: envelope.operation.id };
+        // Compact cascade tombstone instead of per-prompt events (§C7).
+        catalogSeq = await appendCatalogChange(tx, {
+          workspaceId,
+          records: [],
+          tombstones: [{ entity, id: envelope.operation.id }],
+        });
         break;
       }
     }
@@ -244,12 +280,12 @@ export async function executeTeamCommand(
     const committedAt = await persistWorkspaceReceipt(
       tx,
       { workspaceId, principalId: principalIdentifier, commandId: envelope.commandId, requestHash: hash },
-      result,
+      catalogSeq === "0" ? result : { ...result, _catalogSeq: catalogSeq },
     );
     return {
       commandId: envelope.commandId,
       committedAt: committedAt.toISOString(),
-      catalogSeq: "0",
+      catalogSeq,
       result,
       ...extras,
     };
