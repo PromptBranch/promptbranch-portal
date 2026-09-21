@@ -15,3 +15,6 @@ apps/portal/.next/
 apps/portal/data/
 /deploy/portal/.env
 docs/superpowers/*
+
+# team dev stack local env
+deploy/team/.env

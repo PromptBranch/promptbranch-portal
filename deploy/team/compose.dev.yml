@@ -1,0 +1,99 @@
+# PromptBranch team development stack — dependency containers only.
+#
+# The portal itself runs on the host via `pnpm dev` so the advertised loopback
+# issuer (http://127.0.0.1:48080/realms/promptbranch-dev) is byte-identical for
+# browser, portal Node process and native clients (contract C10); containers
+# must never rewrite it. All ports are published on 127.0.0.1 only.
+#
+# Reference addresses (contract C10):
+#   PostgreSQL      127.0.0.1:54329   (databases: `team`, `keycloak`)
+#   Keycloak        127.0.0.1:48080   (realm `promptbranch-dev`)
+#   SMTP capture    127.0.0.1:48025   (Mailpit SMTP)
+#   Capture web UI  127.0.0.1:48026   (Mailpit inbox)
+#
+# Images are pinned by exact version AND content digest; bump deliberately via
+# a release-support check, never by floating tags.
+name: promptbranch-team-dev
+
+services:
+  postgres:
+    image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${TEAM_SUPERUSER_PG_PASSWORD:?set TEAM_SUPERUSER_PG_PASSWORD in deploy/team/.env}
+      POSTGRES_DB: postgres
+      # Consumed by postgres-init/01-team-roles.sh on first initdb.
+      TEAM_APP_PG_PASSWORD: ${TEAM_APP_PG_PASSWORD:?set TEAM_APP_PG_PASSWORD in deploy/team/.env}
+      TEAM_MIGRATE_PG_PASSWORD: ${TEAM_MIGRATE_PG_PASSWORD:?set TEAM_MIGRATE_PG_PASSWORD in deploy/team/.env}
+      TEAM_ADMIN_PG_PASSWORD: ${TEAM_ADMIN_PG_PASSWORD:?set TEAM_ADMIN_PG_PASSWORD in deploy/team/.env}
+      KEYCLOAK_PG_PASSWORD: ${KEYCLOAK_PG_PASSWORD:?set KEYCLOAK_PG_PASSWORD in deploy/team/.env}
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      # PG 18+ images store data under /var/lib/postgresql with
+      # major-version-specific subdirectories (pg_upgrade-friendly); mounting
+      # the old /var/lib/postgresql/data path makes the container refuse to
+      # start.
+      - team_pg_data:/var/lib/postgresql
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    restart: unless-stopped
+    # start-dev is deliberate: this is the reference development provider, not
+    # a production deployment. The realm is NOT imported here — Keycloak 26.7
+    # realm import drops standard client scopes and rejects the desktop
+    # client's loopback wildcard-port redirect URI; scripts/team-keycloak-init
+    # (chained by team:dev:up) builds the realm through the admin API instead.
+    command:
+      - start-dev
+      - --health-enabled=true
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME in deploy/team/.env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD in deploy/team/.env}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_PG_PASSWORD:?set KEYCLOAK_PG_PASSWORD in deploy/team/.env}
+      # Advertised issuer must match exactly from browser, host process and
+      # native clients; never substitute a different host to make container
+      # DNS work (contract C10).
+      KC_HOSTNAME: http://127.0.0.1:48080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      # Resolved inside the realm import file (${WEB_CLIENT_SECRET:default}).
+      WEB_CLIENT_SECRET: ${WEB_CLIENT_SECRET:-pb-team-web-dev-secret}
+    ports:
+      - "127.0.0.1:48080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Management interface (port 9000) serves /health when health is enabled.
+      # The image ships bash, so use /dev/tcp instead of assuming curl.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3 &&
+          cat <&3 | grep -q '"status" *: *"UP"'
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.31.2@sha256:74d609a42ec279aa63c6b4622a6fa9b5408d1ad5b1d76a1c4be40a265ce0863d
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:48025:1025"
+      - "127.0.0.1:48026:8025"
+
+volumes:
+  team_pg_data:

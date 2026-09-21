@@ -9,12 +9,17 @@ PromptBranch Portal is the **self-hosted sharing backend for PromptBranch** (a l
 This is a pnpm monorepo (pnpm 11.7.0, Node 26, TypeScript 5.9 strict):
 
 ```
-apps/portal         @promptbranch/portal  — Next.js 15 App Router service (JSON API + SSR viewer)
+apps/portal         @promptbranch/portal  — Next.js App Router service (JSON API + SSR viewer)
 packages/share      @promptbranch/share   — Sharing contract: Zod schemas, secret scanner,
                                             id/token generation, snapshot URL parsing, HTTP client.
                                             Zero Electron/DOM dependencies (shared with the desktop app).
+packages/team-server @promptbranch/team-server — Team workspaces server foundation (in progress on
+                                            feature/teams-portal): PostgreSQL storage, forward-only
+                                            migrations, workspace transactions. Server-only.
 deploy/portal       Production VPS deployment: Docker Compose + Nginx Proxy Manager,
                     host-hardening policies (fail2ban, UFW, sshd, unattended-upgrades).
+deploy/team         Local team development stack: PostgreSQL 18 + Keycloak + mail capture,
+                    digest-pinned, loopback-only (deploy/team/README.md).
 ```
 
 ## Commands
@@ -32,14 +37,24 @@ pnpm typecheck        # strict tsc across all packages
 
 Per-package: `pnpm --filter @promptbranch/portal <script>` or `--filter @promptbranch/share`. Both packages expose `test` and `typecheck`; the portal adds `dev`/`build`/`start`. There is no lint script. GitHub Actions runs the frozen install, typecheck, test, and production-build gate for pull requests and pushes to `main` or `dev`.
 
+Team workspaces (in development on `feature/teams-portal`; see `deploy/team/README.md`):
+
+```sh
+pnpm team:dev:up      # local Postgres 18 + Keycloak + mail capture (loopback, digest-pinned)
+pnpm team:dev:down    # stop the stack
+pnpm team:migrate     # forward-only team-server migrations (DDL role)
+pnpm team:fixtures    # contract/G0 status; refuses non-loopback or non-synthetic config
+pnpm test:team        # @promptbranch/team-server suites against real PostgreSQL
+```
+
 ## Tech Stack
 
-- **Next.js 15** (App Router, `output: "standalone"`), React 19, Node runtime route handlers (`export const runtime = "nodejs"`).
+- **Next.js** (App Router, `output: "standalone"`; manifest is authoritative for the exact version), React 19, Node runtime route handlers (`export const runtime = "nodejs"`).
 - **TypeScript 5.9**, strict plus `noUncheckedIndexedAccess`, `noImplicitOverride`, `verbatimModuleSyntax`, `isolatedModules` (see `tsconfig.base.json`).
 - **Tailwind CSS v4** via `@tailwindcss/postcss` (no tailwind.config file; theme tokens are CSS custom properties in `apps/portal/src/app/globals.css`).
 - **better-sqlite3** (WAL mode, single file `portal.db`), **Zod 4** for all boundary validation, **nanoid** for snapshot ids.
 - **unified/remark/rehype** pipeline with `rehype-sanitize` and **Shiki** (`@shikijs/rehype`) for dual-theme syntax highlighting.
-- **Vitest 4** + Testing Library (React/jsdom) for tests.
+- **Vitest** + Testing Library (React/jsdom) for tests (manifest is authoritative for the exact version).
 - Phosphor icons (`@phosphor-icons/react`, SSR entry) for UI icons.
 
 ## Architecture

@@ -1,0 +1,173 @@
+{
+  "realm": "promptbranch-dev",
+  "displayName": "PromptBranch (local development)",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "bruteForceProtected": false,
+  "defaultSignatureAlgorithm": "RS256",
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "accessTokenLifespan": 300,
+  "accessCodeLifespan": 300,
+  "ssoSessionIdleTimeout": 86400,
+  "ssoSessionMaxLifespan": 2592000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 2592000,
+  "clientScopes": [
+    {
+      "name": "promptbranch-team-api",
+      "description": "Audience marker for the PromptBranch team API (contract C5)",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "team-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "promptbranch-team-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "promptbranch-web",
+      "name": "PromptBranch Web (BFF)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:4317/*"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:4317"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://127.0.0.1:4317/*"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "promptbranch-team-api"
+      ],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "promptbranch-cli",
+      "name": "PromptBranch CLI",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "promptbranch-team-api"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@promptbranch.test",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Synthetic",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pb-team-dev-password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@promptbranch.test",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Synthetic",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pb-team-dev-password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "casey",
+      "enabled": true,
+      "email": "casey@promptbranch.test",
+      "emailVerified": true,
+      "firstName": "Casey",
+      "lastName": "Synthetic",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pb-team-dev-password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "dana",
+      "enabled": true,
+      "email": "dana@promptbranch.test",
+      "emailVerified": true,
+      "firstName": "Dana",
+      "lastName": "Synthetic",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pb-team-dev-password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "erin",
+      "enabled": true,
+      "email": "erin@promptbranch.test",
+      "emailVerified": true,
+      "firstName": "Erin",
+      "lastName": "Synthetic",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pb-team-dev-password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
