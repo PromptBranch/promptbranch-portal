@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { NextRequest } from "next/server";
-import { teamError, createWorkspace, listWorkspaces } from "@promptbranch/team-server";
+import { teamError, createWorkspace, listAgentWorkspaces, listWorkspaces } from "@promptbranch/team-server";
 import { getTeamService } from "@/lib/team/service";
 import { teamErrorResponse, teamJson, requireProtocol, MAX_TEAM_REQUEST_BYTES } from "@/lib/team/http";
 import { authenticateRequest } from "@/lib/team/auth";
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
     const service = getTeamService();
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
+    if (auth.kind === "agent") {
+      // Agents are workspace-scoped capabilities: exactly one workspace.
+      return teamJson(requestId, { items: await listAgentWorkspaces(service.pool, auth.tokenId), nextPageToken: null });
+    }
     return teamJson(requestId, { items: await listWorkspaces(service.pool, auth), nextPageToken: null });
   } catch (error) {
     return teamErrorResponse(requestId, error);

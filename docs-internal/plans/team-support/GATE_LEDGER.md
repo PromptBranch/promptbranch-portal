@@ -2,6 +2,55 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P6 complete
+
+Commits:
+
+- `feat(agents): add revocable workspace capabilities` (P6)
+
+Scope delivered:
+
+- `auth/agent-tokens.ts`: `pbt_<id>.<256-bit-secret>` tokens (secret hashed
+  at rest, shown exactly once); minting service with receipt-based
+  idempotency (replay → `secretAvailable:false` without a second row),
+  catalog:read forced into every scope set, viewers limited to read-only
+  scopes, 20-active-tokens quota, 1–90 day expiry; `resolveAgentBearer`
+  validates in constant time and re-checks expiry, revocation, owner
+  account status, workspace binding and the generation invariant (a
+  rotation that somehow missed revocation still fails closed); listing
+  (own, or all for the owner) and final revocation.
+- Dispatch agent path: fixed operation allowlist (proposal.submit/withdraw,
+  comment.add, note.add, run.report — everything else ROLE_FORBIDDEN),
+  scope intersection (SCOPE_FORBIDDEN), owner-role floor and generation
+  binding before any receipt lookup; agents comment on/withdraw only their
+  OWN proposals; the self-review guard resolves an agent proposal to its
+  owner human. Portal read floors cap agents at viewer-level surfaces —
+  members/invitations/audit/export stay human-only regardless of role.
+- `domain/activity.ts`: note.add/run.report bound to already-published
+  revisions (enforced by the P1 composite FKs — candidates and cross-prompt
+  targets cannot store activity), finite non-negative metrics or null,
+  secret-scanned bodies, no feed emission; activity reads are
+  contributor+ for humans and own-items-only for agents.
+- Routes: `GET/POST /workspaces/:w/agent-tokens`, `DELETE
+  /workspaces/:w/agent-tokens/:id`, `GET /workspaces/:w/activity-items`;
+  `/principal` serves agent identity (`agent:<tokenId>` + scopes), `/me`
+  stays verified-human-only, `/workspaces` returns exactly the token's
+  workspace for agents, and proposal list/detail filter to the agent's own.
+- Tests: team-server 92 (mint once/replay/quota/viewer rule, bearer wall —
+  wrong secret/expiry/revocation/wrong workspace/downgrade/generation,
+  dispatch allowlist, scopes, own-proposal rules, SELF_REVIEW via agent
+  then approval by a different maintainer, notes/runs validation +
+  published-only + no-feed + visibility split, raw-secret scan across all
+  team tables); portal 162 (HTTP mint/replay/list/revoke, /principal for
+  agents, /me 401, mixed auth 401, agent catalogue reads, human-only
+  member surfaces, activity visibility). All gates green.
+
+Pending (main repo): spawning the real PromptBranch CLI/MCP binaries
+against the local service (plan P6 task 5) — recorded like G1's native
+legs until the main repository delivers built clients.
+
+Next: P7 — browser workspace application (largest remaining phase).
+
 ## Record: 2026-09-21, P5 complete
 
 Commits:

@@ -377,7 +377,7 @@ function toProposalDto(row: ProposalReadRow, workspaceId: string): ProposalDto {
 export async function listProposals(
   pool: Pool,
   workspaceId: string,
-  input: { promptId?: string; status?: ProposalStatus; limit?: number; pageToken?: string },
+  input: { promptId?: string; status?: ProposalStatus; limit?: number; pageToken?: string; viewer?: Principal },
 ): Promise<{ items: ProposalDto[]; nextPageToken: string | null }> {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
   const offset = Number(
@@ -393,6 +393,10 @@ export async function listProposals(
   if (input.status) {
     params.push(input.status);
     filter += ` AND pr.status = $${params.length}`;
+  }
+  if (input.viewer?.kind === "agent") {
+    params.push(input.viewer.tokenId);
+    filter += ` AND pr.author_agent_id = $${params.length}`;
   }
   const result = await pool.query<ProposalReadRow>(
     `${PROPOSAL_SELECT} WHERE pr.workspace_id = $1${filter} ORDER BY pr.updated_at DESC, pr.id LIMIT $2 OFFSET $3`,
@@ -470,6 +474,10 @@ export async function addComment(
 ): Promise<{ commentId: string }> {
   scanTeamContent({ body: input.body });
   const proposal = await loadProposal(tx, input.workspaceId, input.proposalId);
+  if (input.actor.kind === "agent" && proposal.author_agent_id !== input.actor.tokenId) {
+    // Agents comment only on their own proposals (contract §C1).
+    throw teamError("NOT_FOUND", "Proposal not found");
+  }
   if (proposal.status === "superseded" || proposal.status === "withdrawn" || proposal.status === "approved") {
     // Discussion stays possible on open and rejected proposals; the other
     // terminal states keep their history frozen.

@@ -164,6 +164,29 @@ export const workspaceOperationSchema = z.discriminatedUnion("type", [
     id: uuid,
     expectedEntityVersion: positiveVersion,
   }),
+  // ---- P6: agent-scoped activity ---------------------------------------
+  z.strictObject({
+    type: z.literal("note.add"),
+    promptId: uuid,
+    revisionId: uuid,
+    body: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
+      message: "note must be nonblank and at most 8000 characters",
+    }),
+  }),
+  z.strictObject({
+    type: z.literal("run.report"),
+    promptId: uuid,
+    revisionId: uuid,
+    body: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
+      message: "run summary must be nonblank and at most 8000 characters",
+    }),
+    model: z.string().max(200).nullable(),
+    status: z.enum(["completed", "failed", "cancelled"]),
+    latencyMs: z.number().int().min(0).nullable(),
+    inputTokens: z.number().int().min(0).nullable(),
+    outputTokens: z.number().int().min(0).nullable(),
+    estimatedCostUsd: z.number().min(0).finite().nullable(),
+  }),
 ]);
 
 export type WorkspaceOperation = z.infer<typeof workspaceOperationSchema>;
@@ -208,9 +231,36 @@ export function requiredRole(operation: WorkspaceOperation): TeamRole {
     case "proposal.submit":
     case "proposal.withdraw":
     case "comment.add":
+    case "note.add":
+    case "run.report":
       return "contributor";
   }
 }
+
+/** Scopes an AGENT principal must hold for an operation (humans need none). */
+export function requiredScopes(operation: WorkspaceOperation): Scope[] {
+  switch (operation.type) {
+    case "proposal.submit":
+    case "proposal.withdraw":
+    case "comment.add":
+      return ["proposal:write"];
+    case "note.add":
+      return ["note:write"];
+    case "run.report":
+      return ["run:write"];
+    default:
+      return [];
+  }
+}
+
+/** Operations an agent may execute at all — everything else is human-only. */
+export const AGENT_ALLOWED_OPERATIONS: ReadonlySet<WorkspaceOperation["type"]> = new Set([
+  "proposal.submit",
+  "proposal.withdraw",
+  "comment.add",
+  "note.add",
+  "run.report",
+]);
 
 /** Result kind reported in the CommandReceipt (contract §C4 table). */
 export type CommandResultKind =
@@ -222,7 +272,11 @@ export type CommandResultKind =
   | "review"
   | "comment"
   | "tag"
-  | "collection";
+  | "collection"
+  | "activityItem";
+
+import type { Scope } from "../auth/principal.js";
+export const SCOPE_VALUES: readonly Scope[] = ["catalog:read", "proposal:write", "note:write", "run:write"];
 
 export function resultKind(operation: WorkspaceOperation): CommandResultKind {
   switch (operation.type) {
@@ -256,5 +310,8 @@ export function resultKind(operation: WorkspaceOperation): CommandResultKind {
     case "collection.rename":
     case "collection.delete":
       return "collection";
+    case "note.add":
+    case "run.report":
+      return "activityItem";
   }
 }

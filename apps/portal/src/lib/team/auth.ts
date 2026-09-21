@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
-import type { ResolvedWebSession } from "@promptbranch/team-server";
-import { teamError } from "@promptbranch/team-server";
+import type { ResolvedWebSession, Scope } from "@promptbranch/team-server";
+import { resolveAgentBearer, teamError } from "@promptbranch/team-server";
 import { TEAM_SESSION_COOKIE } from "./env";
 import type { TeamService } from "./service";
 
@@ -23,6 +23,17 @@ export interface HumanAuthContext {
   webSession?: ResolvedWebSession;
 }
 
+export interface AgentAuthContext {
+  kind: "agent";
+  /** The owning member — agent authority is always scoped to a human. */
+  userId: string;
+  tokenId: string;
+  scopes: Scope[];
+  via: "bearer";
+}
+
+export type AuthContext = HumanAuthContext | AgentAuthContext;
+
 function bearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization");
   if (!header) return null;
@@ -40,7 +51,7 @@ function sessionCookie(request: NextRequest): string | null {
 export async function authenticateRequest(
   service: TeamService,
   request: NextRequest,
-): Promise<HumanAuthContext> {
+): Promise<HumanAuthContext | AgentAuthContext> {
   const bearer = bearerToken(request);
   const cookie = sessionCookie(request);
   if (bearer && cookie) {
@@ -48,6 +59,16 @@ export async function authenticateRequest(
   }
 
   if (bearer) {
+    if (bearer.startsWith("pbt_")) {
+      const agent = await resolveAgentBearer(service.pool, bearer);
+      return {
+        kind: "agent",
+        userId: agent.ownerUserId,
+        tokenId: agent.principal.tokenId,
+        scopes: agent.principal.scopes,
+        via: "bearer",
+      };
+    }
     const access = await service.accessTokenValidator.validate(bearer);
     const user = await service.sessions.mapUser({
       issuer: access.issuer,

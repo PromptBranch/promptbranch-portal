@@ -18,10 +18,38 @@ const ROLE_RANK: Record<TeamRole, number> = {
 
 export async function requireMemberRole(
   service: TeamService,
-  auth: HumanAuthContext,
+  auth: HumanAuthContext | { kind: "agent"; userId: string; tokenId: string; scopes: string[] },
   workspaceId: string,
   minimumRole: TeamRole,
 ): Promise<{ role: TeamRole; generation: string; entityVersion: number }> {
+  if (auth.kind === "agent") {
+    // Agent reads require catalog:read plus a current membership; the
+    // workspace-scoped token cannot read another workspace at all. Agents
+    // never inherit the owner's authority: elevated read floors (members,
+    // invitations, audit, export) are human-only regardless of role.
+    if (minimumRole !== "viewer") {
+      throw teamError("ROLE_FORBIDDEN", "This surface is restricted to human members");
+    }
+    if (!auth.scopes.includes("catalog:read")) {
+      throw teamError("SCOPE_FORBIDDEN", "Agent token lacks the catalog:read scope");
+    }
+    return withWorkspaceTransaction(service.pool, { workspaceId }, async ({ tx }) => {
+      const row = await tx.query<{ role: TeamRole; generation: string; entity_version: number }>(
+        `SELECT m.role, m.generation, m.entity_version
+           FROM team_agent_tokens t
+           JOIN team_memberships m ON m.workspace_id = t.workspace_id AND m.user_id = t.owner_user_id
+          WHERE t.workspace_id = $1 AND t.id = $2 AND t.revoked_at IS NULL AND t.expires_at > now()
+            AND m.removed_at IS NULL AND t.membership_generation = m.generation`,
+        [workspaceId, auth.tokenId],
+      );
+      const membership = row.rows[0];
+      if (!membership) throw teamError("UNAUTHENTICATED", "Agent token is no longer valid");
+      if (ROLE_RANK[membership.role] < ROLE_RANK[minimumRole]) {
+        throw teamError("ROLE_FORBIDDEN", `This action requires the ${minimumRole} role`);
+      }
+      return { role: membership.role, generation: membership.generation, entityVersion: membership.entity_version };
+    });
+  }
   return withWorkspaceTransaction(service.pool, { workspaceId }, async ({ tx }) => {
     const result = await tx.query<{
       role: TeamRole;

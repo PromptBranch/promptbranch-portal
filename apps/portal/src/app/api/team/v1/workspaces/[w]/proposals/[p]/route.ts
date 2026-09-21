@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
-import { getProposalDetail } from "@promptbranch/team-server";
+import { getProposalDetail, teamError } from "@promptbranch/team-server";
 import { getTeamService } from "@/lib/team/service";
 import { teamErrorResponse, teamJson, requireProtocol } from "@/lib/team/http";
 import { authenticateRequest } from "@/lib/team/auth";
@@ -22,7 +22,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ w: 
     const auth = await authenticateRequest(service, request);
     const { w, p } = await context.params;
     await requireMemberRole(service, auth, w, "contributor");
-    return teamJson(requestId, await getProposalDetail(service.pool, w, p));
+    const detail = await getProposalDetail(service.pool, w, p);
+    if (auth.kind === "agent" && detail.proposal.author.agentTokenId !== auth.tokenId) {
+      // Agents see only their own proposals (contract §C4).
+      throw teamError("NOT_FOUND", "Proposal not found");
+    }
+    return teamJson(requestId, detail);
   } catch (error) {
     return teamErrorResponse(requestId, error);
   }

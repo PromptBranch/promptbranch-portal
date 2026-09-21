@@ -121,6 +121,21 @@ export async function getWorkspace(pool: Pool, principal: Principal, workspaceId
   });
 }
 
+/** GET /workspaces for agents — the single workspace their token belongs to. */
+export async function listAgentWorkspaces(pool: Pool, tokenId: string): Promise<WorkspaceDto[]> {
+  const result = await pool.query<
+    WorkspaceRow & { role: TeamRole; generation: string }
+  >(
+    `SELECT w.id, w.name, w.server_epoch, w.entity_version, w.updated_at, w.deleted_at, m.role, m.generation
+       FROM team_agent_tokens t
+       JOIN team_memberships m ON m.workspace_id = t.workspace_id AND m.user_id = t.owner_user_id AND m.removed_at IS NULL
+       JOIN team_workspaces w ON w.id = t.workspace_id AND w.deleted_at IS NULL
+      WHERE t.id = $1 AND t.revoked_at IS NULL AND t.expires_at > now() AND t.membership_generation = m.generation`,
+    [tokenId],
+  );
+  return result.rows.map((row) => dto(row, row.role, row.generation));
+}
+
 /** GET /workspaces — the caller's active memberships, newest update first. */
 export async function listWorkspaces(pool: Pool, principal: Principal): Promise<WorkspaceDto[]> {
   const { userId } = requireHuman(principal);

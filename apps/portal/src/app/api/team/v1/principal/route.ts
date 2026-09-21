@@ -20,6 +20,15 @@ export async function GET(request: NextRequest) {
     const service = getTeamService();
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
+    if (auth.kind === "agent") {
+      return teamJson(requestId, {
+        kind: "agent",
+        principalId: `agent:${auth.tokenId}`,
+        userId: auth.userId,
+        agentTokenId: auth.tokenId,
+        scopes: auth.scopes,
+      });
+    }
     return teamJson(requestId, {
       kind: "human",
       principalId: principalId({ kind: "human", userId: auth.userId, sessionId: auth.sessionId, authenticatedAt: auth.authenticatedAt }),

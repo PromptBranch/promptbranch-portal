@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
     const service = getTeamService();
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
+    if (auth.kind !== "human") {
+      throw teamError("UNAUTHENTICATED", "/me is available to verified human accounts only");
+    }
     const [user, workspaces] = await Promise.all([
       loadUserRow(service, auth.userId),
       listUserWorkspaces(service, auth.userId),
@@ -41,6 +44,9 @@ export async function DELETE(request: NextRequest) {
     const service = getTeamService();
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
+    if (auth.kind !== "human") {
+      throw teamError("UNAUTHENTICATED", "/me is available to verified human accounts only");
+    }
     if (auth.via === "cookie" && auth.webSession) {
       requireCsrf(service, request, auth.webSession);
     }

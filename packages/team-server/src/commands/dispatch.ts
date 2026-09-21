@@ -5,13 +5,15 @@ import { teamError } from "../errors.js";
 import type { Principal } from "../auth/principal.js";
 import { principalId } from "../auth/principal.js";
 import {
+  AGENT_ALLOWED_OPERATIONS,
   commandEnvelopeSchema,
   requiresFreshLogin,
   requiredRole,
+  requiredScopes,
   type CommandEnvelope,
 } from "./operations.js";
 import { findWorkspaceReceipt, persistWorkspaceReceipt, requestHash } from "./receipts.js";
-import { authorizeOperation, loadMembership } from "../domain/authorization.js";
+import { agentRoleSatisfies, authorizeOperation, loadAgentMembership, loadMembership } from "../domain/authorization.js";
 import { deleteWorkspace, renameWorkspace } from "../domain/workspaces.js";
 import { changeMemberRole, removeMember } from "../domain/memberships.js";
 import { createInvitation, revokeInvitation } from "../domain/invitations.js";
@@ -19,6 +21,7 @@ import { seedPrompt, updatePromptMetadata, setPromptArchived, rollbackPrompt } f
 import { submitProposal, withdrawProposal, reviewProposal, addComment } from "../domain/proposals.js";
 import { createOrgEntity, renameOrgEntity, deleteOrgEntity, type OrgEntity } from "../domain/organization.js";
 import { appendCatalogChange } from "../sync/changes.js";
+import { addActivityItem } from "../domain/activity.js";
 import type { SecretBox } from "../auth/crypto.js";
 
 /**
@@ -74,13 +77,32 @@ export async function executeTeamCommand(
 
     // Authorization and generation come from the CURRENT row — never the
     // envelope — and run before the receipt lookup.
-    const membership = await loadMembership(tx, workspaceId, principal);
-    authorizeOperation(membership, {
-      requiredRole: requiredRole(envelope.operation),
-      generation: envelope.membershipGeneration,
-    });
-
     const principalIdentifier = principalId(principal);
+    if (principal.kind === "agent") {
+      // Agents: fixed operation allowlist, scope intersection, owner-role
+      // floor and generation binding — no membership authority ever.
+      if (!AGENT_ALLOWED_OPERATIONS.has(envelope.operation.type)) {
+        throw teamError("ROLE_FORBIDDEN", "This operation is reserved for human members");
+      }
+      const agent = await loadAgentMembership(tx, workspaceId, principal);
+      if (agent.generation !== envelope.membershipGeneration) {
+        throw teamError("MEMBERSHIP_CHANGED", "Membership changed; refresh and retry with the current generation");
+      }
+      for (const scope of requiredScopes(envelope.operation)) {
+        if (!agent.scopes.includes(scope)) {
+          throw teamError("SCOPE_FORBIDDEN", `Agent token lacks the ${scope} scope`);
+        }
+      }
+      if (!agentRoleSatisfies(agent.role, requiredRole(envelope.operation))) {
+        throw teamError("ROLE_FORBIDDEN", `The token owner's role no longer permits this operation`);
+      }
+    } else {
+      const membership = await loadMembership(tx, workspaceId, principal);
+      authorizeOperation(membership, {
+        requiredRole: requiredRole(envelope.operation),
+        generation: envelope.membershipGeneration,
+      });
+    }
     const hash = requestHash({
       principalId: principalIdentifier,
       workspaceId,
@@ -244,6 +266,37 @@ export async function executeTeamCommand(
       case "comment.add": {
         const comment = await addComment(tx, { workspaceId, actor: principal, ...envelope.operation });
         result = { kind: "comment", id: comment.commentId };
+        break;
+      }
+      case "note.add": {
+        const added = await addActivityItem(tx, {
+          workspaceId,
+          actor: principal,
+          promptId: envelope.operation.promptId,
+          revisionId: envelope.operation.revisionId,
+          body: envelope.operation.body,
+          run: null,
+        });
+        result = { kind: "activityItem", id: added.activityItemId };
+        break;
+      }
+      case "run.report": {
+        const added = await addActivityItem(tx, {
+          workspaceId,
+          actor: principal,
+          promptId: envelope.operation.promptId,
+          revisionId: envelope.operation.revisionId,
+          body: envelope.operation.body,
+          run: {
+            model: envelope.operation.model,
+            status: envelope.operation.status,
+            latencyMs: envelope.operation.latencyMs,
+            inputTokens: envelope.operation.inputTokens,
+            outputTokens: envelope.operation.outputTokens,
+            estimatedCostUsd: envelope.operation.estimatedCostUsd,
+          },
+        });
+        result = { kind: "activityItem", id: added.activityItemId };
         break;
       }
       case "tag.create":
