@@ -1,0 +1,25 @@
+{
+  "name": "@promptbranch/team-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PromptBranch team workspaces server foundation: PostgreSQL storage, forward-only migrations and workspace transactions. Server-only; never imported by browser code.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "pg": "8.23.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.5.1",
+    "@types/pg": "8.23.1",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}
