@@ -84,16 +84,29 @@ export async function startBootstrap(pool: Pool, input: BootstrapStartInput): Pr
       [
         input.workspaceId,
         principalKey,
-        input.principal.kind === "human" ? input.principal.userId : null,
+        // Agents carry their owning member's userId; principal_key keeps the
+        // agent's snapshots distinct from the owner's own.
+        input.principal.userId,
         input.membershipGeneration,
         input.serverEpoch,
         Number(highWater),
       ],
     )).rows[0]!.snapshot_id;
-    if (prior) {
-      await tx.query("DELETE FROM team_bootstrap_rows WHERE snapshot_id = $1", [prior.snapshot_id]);
-      await tx.query("DELETE FROM team_bootstraps WHERE snapshot_id = $1", [prior.snapshot_id]);
-    }
+    // One ACTIVE snapshot per principal per workspace (P8 abuse cap): a new
+    // start supersedes every prior bootstrap for this principal — a changed
+    // generation/epoch invalidates it anyway, and page reads of a superseded
+    // snapshot simply stop resolving. The workspace-row lock above serializes
+    // concurrent starts, so the cap holds under races.
+    await tx.query(
+      `DELETE FROM team_bootstrap_rows WHERE snapshot_id IN (
+         SELECT snapshot_id FROM team_bootstraps
+          WHERE workspace_id = $1 AND principal_key = $2 AND snapshot_id <> $3)`,
+      [input.workspaceId, principalKey, snapshotId],
+    );
+    await tx.query(
+      "DELETE FROM team_bootstraps WHERE workspace_id = $1 AND principal_key = $2 AND snapshot_id <> $3",
+      [input.workspaceId, principalKey, snapshotId],
+    );
 
     await tx.query(
       `INSERT INTO team_bootstrap_rows (snapshot_id, ordinal, record_json)

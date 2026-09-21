@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { teamError } from "@promptbranch/team-server";
 import { getTeamService } from "@/lib/team/service";
-import { teamErrorResponse, teamJson, requireProtocol } from "@/lib/team/http";
+import { teamErrorResponse, teamJson, requireProtocol, readTeamJsonBody } from "@/lib/team/http";
 import { authenticateRequest, listUserWorkspaces, loadUserRow } from "@/lib/team/auth";
 import { requireCsrf } from "@/lib/team/csrf";
 
@@ -50,12 +50,7 @@ export async function DELETE(request: NextRequest) {
     if (auth.via === "cookie" && auth.webSession) {
       requireCsrf(service, request, auth.webSession);
     }
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      body = null;
-    }
+    const body = await readTeamJsonBody(request);
     const parsed = deleteMeSchema.safeParse(body);
     if (!parsed.success) {
       throw teamError("VALIDATION_FAILED", "confirmEmail is required");

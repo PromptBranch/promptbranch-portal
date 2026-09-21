@@ -24,6 +24,7 @@ export * from "./domain/prompts.js";
 export * from "./domain/proposals.js";
 export * from "./domain/organization.js";
 export * from "./domain/activity.js";
+export * from "./domain/rate.js";
 export * from "./sync/cursors.js";
 export * from "./sync/catalog-records.js";
 export * from "./sync/changes.js";

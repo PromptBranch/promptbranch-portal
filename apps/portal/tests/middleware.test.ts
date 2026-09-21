@@ -37,6 +37,17 @@ describe("middleware security headers", () => {
     const second = middleware(new NextRequest("http://localhost/")).headers.get("content-security-policy");
     expect(first).not.toBe(second);
   });
+
+  it("marks team surfaces private no-store, public surfaces untouched", () => {
+    // Verified end-to-end in production (next start): the middleware value is
+    // what ships; dev-mode Next additionally overrides HTML responses with
+    // its own no-cache instrumentation, which the HTTP suite asserts loosely.
+    for (const path of ["/team", "/team/w/abc", "/team/auth/login"]) {
+      expect(middleware(new NextRequest(`http://localhost${path}`)).headers.get("cache-control")).toBe("private, no-store");
+    }
+    expect(middleware(new NextRequest("http://localhost/")).headers.get("cache-control")).toBeNull();
+    expect(middleware(new NextRequest("http://localhost/p/abc")).headers.get("cache-control")).toBeNull();
+  });
 });
 
 describe("robots.txt", () => {

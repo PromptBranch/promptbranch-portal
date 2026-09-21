@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
-import { executeTeamCommand, teamError } from "@promptbranch/team-server";
+import { consumeRateBucket, executeTeamCommand, WRITES_PER_MINUTE } from "@promptbranch/team-server";
 import { getTeamService } from "@/lib/team/service";
-import { teamErrorResponse, teamJson, requireProtocol, MAX_TEAM_REQUEST_BYTES } from "@/lib/team/http";
+import { teamErrorResponse, teamJson, requireProtocol, readTeamJsonBody } from "@/lib/team/http";
 import { authenticateRequest } from "@/lib/team/auth";
 import { requireCsrf } from "@/lib/team/csrf";
 
@@ -28,14 +28,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ w:
     if (auth.via === "cookie" && auth.webSession) {
       requireCsrf(service, request, auth.webSession);
     }
-    const declared = Number(request.headers.get("content-length") ?? 0);
-    if (declared > MAX_TEAM_REQUEST_BYTES) throw teamError("PAYLOAD_TOO_LARGE", "Request body exceeds the 256 KiB limit");
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      body = null;
-    }
+    // Shared write quota (C8): 60 writes/minute per principal, shared with
+    // workspace creation and enforced in Postgres so every instance counts.
+    await consumeRateBucket(
+      service.pool,
+      `cmdwrite:${auth.kind === "agent" ? `agent:${auth.tokenId}` : `user:${auth.userId}`}`,
+      WRITES_PER_MINUTE,
+      60_000,
+    );
+    const body = await readTeamJsonBody(request);
     const { w } = await context.params;
     const receipt = await executeTeamCommand(
       { pool: service.pool, secretBox: service.secretBox, publicOrigin: service.env.TEAM_PUBLIC_ORIGIN },

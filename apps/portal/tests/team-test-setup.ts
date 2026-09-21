@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import pg from "pg";
 import { runTeamMigrations, type MigrationResult } from "@promptbranch/team-server/migrations";
-import { resetTeamServiceCache } from "@/lib/team/service";
+import { resetTeamServiceCache, getTeamService } from "@/lib/team/service";
 
 /**
  * Shared fixture for portal team tests: a scratch PostgreSQL database with
@@ -85,8 +85,16 @@ export async function setupTeamTest(): Promise<TeamTestSetup> {
   delete process.env.TEAM_ENABLED;
 
   const cleanup = async () => {
+    // The service singleton's pool must be fully ended BEFORE the scratch
+    // database is dropped WITH (FORCE): otherwise PG terminates its still
+    // idle clients and the errors surface as unhandled exceptions in
+    // whichever test file raced the drop. The settle tick lets sockets that
+    // pg already removed from the pool finish closing.
+    const service = getTeamService();
+    if (service) await service.pool.end().catch(() => undefined);
     resetTeamServiceCache();
     await pool.end().catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 100));
     await admin.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`).catch(() => undefined);
     await admin.end().catch(() => undefined);
     delete process.env.TEAM_DATABASE_URL;

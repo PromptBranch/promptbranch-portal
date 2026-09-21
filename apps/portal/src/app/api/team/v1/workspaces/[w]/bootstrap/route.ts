@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { startBootstrap, teamError, withWorkspaceTransaction } from "@promptbranch/team-server";
 import { getTeamService } from "@/lib/team/service";
-import { teamErrorResponse, teamJson, requireProtocol, MAX_TEAM_REQUEST_BYTES } from "@/lib/team/http";
+import { teamErrorResponse, teamJson, requireProtocol, readTeamJsonBody } from "@/lib/team/http";
 import { authenticateRequest } from "@/lib/team/auth";
 import { requireCsrf } from "@/lib/team/csrf";
 
@@ -29,14 +29,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ w:
     if (auth.via === "cookie" && auth.webSession) {
       requireCsrf(service, request, auth.webSession);
     }
-    const declared = Number(request.headers.get("content-length") ?? 0);
-    if (declared > MAX_TEAM_REQUEST_BYTES) throw teamError("PAYLOAD_TOO_LARGE", "Request body exceeds the 256 KiB limit");
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      body = null;
-    }
+    const body = await readTeamJsonBody(request);
     const parsed = bootstrapSchema.safeParse(body);
     if (!parsed.success) throw teamError("VALIDATION_FAILED", "Expected {membershipGeneration, serverEpoch}");
     const { w } = await context.params;

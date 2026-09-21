@@ -59,6 +59,43 @@ export function teamErrorResponse(requestId: string, error: unknown): NextRespon
 export const MAX_TEAM_REQUEST_BYTES = TEAM_LIMITS.maxRequestBytes;
 
 /**
+ * Reads a JSON request body under the wire cap. The content-length
+ * pre-check rejects oversized declared bodies without reading, but chunked
+ * streaming bodies carry no content-length — the stream itself is counted
+ * and cut off at the cap so no caller can stream unbounded bytes into
+ * memory. Unparseable/empty bodies return null and let the caller's schema
+ * validation produce the client-facing error.
+ */
+export async function readTeamJsonBody(request: NextRequest): Promise<unknown> {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_TEAM_REQUEST_BYTES) {
+    throw teamError("PAYLOAD_TOO_LARGE", "Request body exceeds the 256 KiB limit");
+  }
+  const reader = request.body?.getReader();
+  if (!reader) return null;
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      received += value.byteLength;
+      if (received > MAX_TEAM_REQUEST_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw teamError("PAYLOAD_TOO_LARGE", "Request body exceeds the 256 KiB limit");
+      }
+      chunks.push(value);
+    }
+  }
+  if (chunks.length === 0) return null;
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Protocol gate: every team API route except discovery requires the client's
  * protocol header; a mismatched major is rejected before any domain work.
  */

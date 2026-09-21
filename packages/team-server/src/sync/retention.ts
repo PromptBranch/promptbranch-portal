@@ -2,14 +2,16 @@ import type { Pool } from "../db.js";
 
 /**
  * Retention sweep (contract §C7): bootstrap rows live 10 minutes, change
- * events 30 days. The minimum retained cursor advances ONLY after the rows
- * are deleted, in the same transaction — pruning can never create an
- * apparent gap between the floor and surviving events.
+ * events 30 days, rate buckets until their window expires. The minimum
+ * retained cursor advances ONLY after the rows are deleted, in the same
+ * transaction — pruning can never create an apparent gap between the floor
+ * and surviving events.
  */
 
 export interface SweepResult {
   expiredBootstraps: number;
   prunedChanges: number;
+  expiredRateBuckets: number;
 }
 
 const MAX_CHANGES_PER_SWEEP = 5_000;
@@ -19,6 +21,7 @@ export async function sweepExpiredSyncState(pool: Pool): Promise<SweepResult> {
   try {
     await client.query("BEGIN");
     const bootstraps = await client.query("DELETE FROM team_bootstraps WHERE expires_at <= now()");
+    const buckets = await client.query("DELETE FROM team_rate_buckets WHERE expires_at <= now()");
 
     const deleted = await client.query<{ workspace_id: string; seq: string }>(
       `DELETE FROM team_changes
@@ -54,6 +57,7 @@ export async function sweepExpiredSyncState(pool: Pool): Promise<SweepResult> {
     return {
       expiredBootstraps: bootstraps.rowCount ?? 0,
       prunedChanges: deleted.rowCount ?? 0,
+      expiredRateBuckets: buckets.rowCount ?? 0,
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);

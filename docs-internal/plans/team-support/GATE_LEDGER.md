@@ -2,6 +2,93 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P8 complete
+
+Commits:
+
+- `test(team): enforce cross-workspace and private-surface boundaries` (P8)
+
+Scope delivered:
+
+- **Authorization matrix** (`apps/portal/tests/team-boundaries.test.ts`, 41
+  tests): every team read route (workspace detail, prompts/prompt/revisions/
+  revision, tags, collections, proposals, activity-items, members,
+  invitations, audit, changes feed, bootstrap start) × {outsider, foreign
+  member, viewer, contributor, maintainer, owner, agent} with exact
+  floor/status expectations, `private, no-store` asserted on every response,
+  and content-canary leak checks on every body (two workspaces with the
+  SAME title; denied bodies carry neither side's content, allowed W1 reads
+  never carry W2's). Foreign nested IDs (W2's prompt/revision under W1's
+  paths) → 404 with no data; W1 member on W2's real path → 403.
+- **Command negatives**: spoofed `actor` envelope fields never grant
+  authority (authorization derives from the authenticated principal; no
+  invitation row appears); foreign principal cannot replay another's
+  commandId; stale epoch header → 410 before state changes; garbage feed
+  cursor and garbage bootstrap snapshot id rejected without leaks.
+- **Abuse controls (new machinery)**: `packages/team-server/src/domain/rate.ts`
+  — fixed-window Postgres counters in `team_rate_buckets` (atomic
+  INSERT..ON CONFLICT, per-key stale-window cleanup, retention sweep purges
+  expired buckets). Wired: writes 60/minute per principal on the commands
+  route AND workspace-create (shared `cmdwrite:` key), invitations
+  20/hour/workspace inside dispatch (replays skip; rollbacks release the
+  slot). 429 suite proves exhaustion blocks valid commands and never
+  affects other principals.
+- **Streaming body cap**: `readTeamJsonBody` in `lib/team/http.ts` enforces
+  the 256 KiB cap on the request STREAM (chunked bodies carry no
+  content-length); replaced all six inline content-length+json() blocks.
+  Handler tests + a real-HTTP chunked 413.
+- **Bootstrap cap**: `startBootstrap` now supersedes every prior snapshot
+  for the principal (1 active per principal/workspace, serialized by the
+  workspace-row lock); superseded snapshot ids stop serving pages.
+- **Private-page hygiene**: middleware sets `cache-control: private,
+  no-store` on `/team` paths; new `app/team/layout.tsx` exports
+  `robots: {index: false, follow: false}`. Crawl exclusion pinned by tests:
+  sitemap.xml and llms.txt never contain "/team", robots keeps disallowing
+  `/api/` (covers `/api/team`), no OG-image routes exist under /team.
+- **Real-HTTP suite** (`apps/portal/tests/team-http.test.ts`, 11 tests):
+  spawns `next dev --webpack` on :4617 against the scratch PostgreSQL,
+  forges a web session straight into the shared DB (same encryption key),
+  and drives actual HTTP: protocol gate 426, CSRF double-submit negatives
+  (missing/wrong token, cross-origin Origin rejected even with a valid
+  token, cookie+bearer combo rejected, valid pair accepted), strict nonce
+  CSP (`strict-dynamic`, no script `unsafe-inline`), page privacy, and the
+  chunked-body 413.
+
+**Bug found by the matrix and fixed**: agent-token bootstraps returned 503
+— `startBootstrap` inserted NULL into `team_bootstraps.principal_user_id`
+(NOT NULL). Agents now record their owning member's user id
+(`principal_key` still separates agent snapshots from the owner's own).
+
+Verified additionally against a production `next build && next start`:
+`/team` serves exactly `cache-control: private, no-store` (the middleware
+value ships in production; dev-mode Next overrides HTML responses with its
+own `no-cache` instrumentation — the HTTP suite asserts the invariant,
+`middleware.test.ts` pins the exact value).
+
+Test-infra hardening: `team-test-setup` cleanup ends the service
+singleton's pool and settles before `DROP DATABASE WITH (FORCE)` — under
+parallel suite load the terminated sockets surfaced as unhandled errors.
+
+Gates: `pnpm typecheck` (3 packages), `pnpm test` — share 64, team-server
+98 (+6), portal 222 (221 + 1 skipped G0; +53) — stable across repeated
+runs, `pnpm build`, `git diff --check` — all green.
+
+Decisions / deviations:
+
+1. "writes 60/minute" (contract C8) interpreted as per-principal across all
+   workspaces, shared between the commands route and workspace creation.
+2. Auth-edge IP limits stay in the pre-existing in-memory limiters on
+   /team/auth/login and callback (20/10min, 30/10min); the contract's
+   "Postgres counters for shared limits" applies to the authenticated
+   write/invitation quotas where cross-instance accuracy matters.
+3. The 3 owner-exports/hour quota is deferred to P9 together with the
+   export feature itself (nothing to cap yet); recorded here so P9 picks
+   it up.
+4. Foreign-ID tests use cross-workspace IDs (W2's real prompt/revision in
+   W1 paths); "coincidentally similar IDs" beyond that is not constructible
+   with server-generated UUIDs — the shared-title twins cover the
+   confusion case the plan aimed at.
+
 ## Record: 2026-09-21, post-P7 design alignment
 
 User-directed pass (not a plan phase): reuse the existing portal design

@@ -39,6 +39,12 @@ export function middleware(request: NextRequest): NextResponse {
   response.headers.set("referrer-policy", "no-referrer");
   response.headers.set("x-frame-options", "DENY");
   response.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
+  // Team surfaces are per-user private HTML: never stored by any cache. The
+  // JSON API sets its own no-store in lib/team/http; this covers the pages
+  // (and auth redirects) that have no handler-level headers.
+  if (request.nextUrl.pathname === "/team" || request.nextUrl.pathname.startsWith("/team/")) {
+    response.headers.set("cache-control", "private, no-store");
+  }
   return response;
 }
 

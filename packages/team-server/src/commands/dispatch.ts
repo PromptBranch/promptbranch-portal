@@ -17,6 +17,7 @@ import { agentRoleSatisfies, authorizeOperation, loadAgentMembership, loadMember
 import { deleteWorkspace, renameWorkspace } from "../domain/workspaces.js";
 import { changeMemberRole, removeMember } from "../domain/memberships.js";
 import { createInvitation, revokeInvitation } from "../domain/invitations.js";
+import { consumeRateBucket, INVITATIONS_PER_HOUR } from "../domain/rate.js";
 import { seedPrompt, updatePromptMetadata, setPromptArchived, rollbackPrompt } from "../domain/prompts.js";
 import { submitProposal, withdrawProposal, reviewProposal, addComment } from "../domain/proposals.js";
 import { createOrgEntity, renameOrgEntity, deleteOrgEntity, type OrgEntity } from "../domain/organization.js";
@@ -174,6 +175,10 @@ export async function executeTeamCommand(
         break;
       }
       case "invitation.create": {
+        // Shared quota (C8): 20 invitations per workspace per hour, counted
+        // inside the command transaction — receipt replays return above and
+        // never reach this point, and a rolled-back create releases its slot.
+        await consumeRateBucket(tx, `invite:${workspaceId}`, INVITATIONS_PER_HOUR, 3_600_000);
         const nameRow = await tx.query<{ name: string }>("SELECT name FROM team_workspaces WHERE id = $1", [workspaceId]);
         const created = await createInvitation(tx, {
           workspaceId,
