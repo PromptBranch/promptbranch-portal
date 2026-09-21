@@ -15,6 +15,9 @@ import { authorizeOperation, loadMembership } from "../domain/authorization.js";
 import { deleteWorkspace, renameWorkspace } from "../domain/workspaces.js";
 import { changeMemberRole, removeMember } from "../domain/memberships.js";
 import { createInvitation, revokeInvitation } from "../domain/invitations.js";
+import { seedPrompt, updatePromptMetadata, setPromptArchived, rollbackPrompt } from "../domain/prompts.js";
+import { submitProposal, withdrawProposal, reviewProposal, addComment } from "../domain/proposals.js";
+import { createOrgEntity, renameOrgEntity, deleteOrgEntity, type OrgEntity } from "../domain/organization.js";
 import type { SecretBox } from "../auth/crypto.js";
 
 /**
@@ -114,7 +117,7 @@ export async function executeTeamCommand(
     }
 
     let result: { kind: string; id: string; entityVersion?: number };
-    let extras: { invitationToken?: string; invitationExpiresAt?: string } = {};
+    let extras: { invitationToken?: string; invitationExpiresAt?: string; mediumFindings?: unknown[] } = {};
     switch (envelope.operation.type) {
       case "workspace.rename": {
         const updated = await renameWorkspace(tx, workspaceId, principal, envelope.operation);
@@ -163,6 +166,77 @@ export async function executeTeamCommand(
           invitationId: envelope.operation.invitationId,
         });
         result = { kind: "invitation", id: revoked.id };
+        break;
+      }
+      case "prompt.create": {
+        const seeded = await seedPrompt(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "prompt", id: seeded.promptId, entityVersion: seeded.entityVersion };
+        break;
+      }
+      case "prompt.metadata": {
+        const updated = await updatePromptMetadata(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        break;
+      }
+      case "prompt.archive":
+      case "prompt.restore": {
+        const updated = await setPromptArchived(tx, {
+          workspaceId,
+          actor: principal,
+          promptId: envelope.operation.promptId,
+          archived: envelope.operation.type === "prompt.archive",
+          expectedEntityVersion: envelope.operation.expectedEntityVersion,
+        });
+        result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        break;
+      }
+      case "prompt.rollback": {
+        const updated = await rollbackPrompt(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "prompt", id: envelope.operation.promptId, entityVersion: updated.entityVersion };
+        break;
+      }
+      case "proposal.submit": {
+        const submitted = await submitProposal(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "proposal", id: submitted.proposalId, entityVersion: submitted.entityVersion };
+        // Medium findings ride along for client preview (contract §C8);
+        // high findings already threw SECRET_BLOCKED.
+        extras = submitted.mediumFindings.length > 0 ? { mediumFindings: submitted.mediumFindings } : {};
+        break;
+      }
+      case "proposal.withdraw": {
+        const updated = await withdrawProposal(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "proposal", id: envelope.operation.proposalId, entityVersion: updated.entityVersion };
+        break;
+      }
+      case "proposal.review": {
+        const reviewed = await reviewProposal(tx, { workspaceId, reviewer: principal, ...envelope.operation });
+        result = { kind: "review", id: envelope.operation.proposalId, entityVersion: reviewed.entityVersion };
+        break;
+      }
+      case "comment.add": {
+        const comment = await addComment(tx, { workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: "comment", id: comment.commentId };
+        break;
+      }
+      case "tag.create":
+      case "collection.create": {
+        const entity: OrgEntity = envelope.operation.type === "tag.create" ? "tag" : "collection";
+        const created = await createOrgEntity(tx, { entity, workspaceId, actor: principal, name: envelope.operation.name });
+        result = { kind: entity, id: created.id, entityVersion: created.entityVersion };
+        break;
+      }
+      case "tag.rename":
+      case "collection.rename": {
+        const entity: OrgEntity = envelope.operation.type === "tag.rename" ? "tag" : "collection";
+        const updated = await renameOrgEntity(tx, { entity, workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: entity, id: envelope.operation.id, entityVersion: updated.entityVersion };
+        break;
+      }
+      case "tag.delete":
+      case "collection.delete": {
+        const entity: OrgEntity = envelope.operation.type === "tag.delete" ? "tag" : "collection";
+        await deleteOrgEntity(tx, { entity, workspaceId, actor: principal, ...envelope.operation });
+        result = { kind: entity, id: envelope.operation.id };
         break;
       }
     }

@@ -146,6 +146,9 @@ importers:
 
   packages/team-server:
     dependencies:
+      '@promptbranch/share':
+        specifier: workspace:*
+        version: link:../share
       jose:
         specifier: 6.2.12
         version: 6.2.12

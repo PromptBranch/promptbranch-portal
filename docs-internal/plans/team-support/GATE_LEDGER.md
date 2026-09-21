@@ -2,6 +2,56 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-21, P4 complete
+
+Commits:
+
+- `feat(team): add immutable revisions and reviewed changes` (P4)
+
+Scope delivered:
+
+- `content/scan.ts`: the packages/share rule set enforced server-side on
+  every new team text (seed content/metadata/change notes, proposal
+  content/rationale, review comments, discussion comments); high →
+  SECRET_BLOCKED with redacted field/rule/line findings, medium ride along
+  on the dispatch response for client preview; 64 KiB UTF-8 content ceiling.
+- `commands/operations.ts`: full P4 union (prompt.create/metadata/archive/
+  restore/rollback, proposal.submit/withdraw/review, comment.add,
+  tag/collection create/rename/delete) with C2 field limits; role floors
+  corrected to the C4 table (owner-only membership/invitation/workspace ops
+  retained; maintainer for prompt/review/organization; contributor for
+  submit/withdraw/comment).
+- Domains: `revisions` (immutable candidates, server-computed contentHash),
+  `prompts` (deferrable-FK atomic seed, metadata with expected versions,
+  archive/restore semantics, publication-verified rollback, tsvector search
+  projection maintained in-mutation from title/description + APPROVED head
+  only, browse/detail/history/exact-revision reads), `proposals`
+  (submission never writes publication/search rows; supersession closes the
+  old proposal atomically; review enforces open-status + version + exact
+  candidate id/hash + distinct human author (SELF_REVIEW incl. agent-owner
+  case) + head=base=expected → STALE_BASE; reject never moves the head;
+  terminal states refuse further mutations; append-only comments),
+  `organization` (case-insensitive unique tags/collections, junction
+  cascades, cross-workspace ids rejected by composite FKs).
+- Portal routes: prompts list/detail/history, revisions/:r, tags,
+  collections, proposals list/detail (the only candidate-visible surface,
+  contributor+) and comments, all member/role-gated via requireMemberRole.
+
+Tests: team-server 76 (seed/search, secret scan, self-review, exact
+candidate binding, concurrent-approval STALE_BASE + rebase via supersession,
+terminal states, archive restrictions, rollback, tag collisions/cascades,
+candidate privacy across search/history/exact-revision/detail); portal 159
+(HTTP catalogue authorization, viewer refused on collaboration surfaces,
+candidate invisible everywhere but proposal detail, foreign workspace 403).
+All gates green.
+
+Deferred (as planned): catalogue sequence/feed emission and bootstrap (P5);
+agent-authored submissions + notes/run summaries (P6); browser UI (P7);
+`mediumFindings` rides as a forward-compatible extra field until the D0
+contract fixes its home.
+
+Next: P5 — consistent catalogue bootstrap and resumable change feed.
+
 ## Record: 2026-09-21, P3 complete
 
 Commits:
