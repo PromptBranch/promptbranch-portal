@@ -165,3 +165,36 @@ portability format, **not** a live restore/import API. Exports contain
 domain content only (prompts, revisions, publications, tags, collections,
 proposals, reviews, comments) — never sessions, token hashes, invitation
 secrets, receipts or rate-bucket internals — and expire after 10 minutes.
+
+## Staged rollout and rollback (P10 policy)
+
+**Rollout**: deploy only to explicitly authorized staging first. The public
+team feature stays disabled (`TEAM_ENABLED=false`) until acceptance; the
+backend ships a compatible API before any client flag flips. Pilot with
+2–3 invited teams and collect task success, conflict/retry rate, join
+completion, time-to-find-approved-prompt and incidents — no content
+analytics. Two weeks of use with no unresolved isolation or data-loss
+defects precede wider availability.
+
+**Rollback**: disable new team mutations (reverse proxy or `TEAM_ENABLED`),
+preserve database/backups/queues, and serve an explicit unavailable state
+— never reverse destructive migrations automatically; return to the last
+compatible server image. Personal snapshot publishing continues
+unaffected: the anonymous portal shares the process but none of the team
+data stores.
+
+**Readiness evidence** (production mode, synthetic 1,000 prompts /
+10,000 revisions / 20 agent clients, local network):
+
+| Target | Contract | Measured |
+|---|---|---|
+| Approved read p95 | ≤ 500 ms | 63 ms |
+| Search p95 | ≤ 500 ms | 37 ms |
+| Command acceptance p95 | ≤ 1 s | 8 ms |
+| Full catalogue bootstrap | ≤ 60 s | 6.6 s (28.5 MB) |
+| Second-client feed visibility | ≤ 30 s | 37 ms |
+
+Reproduce with `pnpm team:benchmark` (loopback origins only, synthetic
+content; exits non-zero on a target miss). `pnpm team:integration` prints
+the current gate receipt — the real-client gates (G0/G2/G3) stay PENDING
+until the main repository's contract artifact and built clients arrive.

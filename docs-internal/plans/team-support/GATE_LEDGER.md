@@ -2,6 +2,67 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-22, P10 complete (portal side)
+
+Commits:
+
+- `feat(pilot): add team benchmark, CI lane and integration readiness` (P10)
+
+Scope delivered:
+
+- **Gap fix found in review**: contract C8 also caps READS at 300/minute/
+  principal/workspace — the P8 ledger note ("reads not in the shared
+  list") was wrong. `requireMemberRole` now consumes a shared PG bucket,
+  covering every JSON read route AND SSR page loads with one key.
+- **`scripts/team-benchmark.mjs`** (`pnpm team:benchmark`): seeds a
+  synthetic workspace (1,000 prompts / 10,000 published revisions via SQL,
+  20 agent clients minted directly with sha256-at-rest secrets), then
+  drives a REAL server: p50/p95 approved read + search under 20
+  concurrent clients, command acceptance (proposal.submit), full
+  catalogue bootstrap (pages via signed tokens), and second-client feed
+  visibility (catalogue write via a forged owner web session over real
+  HTTP with the CSRF pair — proposals never enter the feed, so the probe
+  uses prompt.create). Loopback origins only; synthetic markers
+  everywhere; idempotent pre-clean + product-lifecycle cleanup (purge
+  sweep). Exits non-zero on a contract-target miss.
+  **Production-mode run (next build + start, local network): read p95
+  63 ms, search p95 37 ms, command p95 8 ms, bootstrap 6.6 s for
+  28.5 MB, feed visibility 37 ms — ALL targets met.** A dev-mode run
+  misses read p95 (707 ms) from instrumentation overhead — dev numbers
+  are not acceptance evidence; run production mode.
+- **`scripts/team-integration.mjs`** (`pnpm team:integration`): the G-gate
+  receipt — branch/commit, contract SHA (4264f958…), migration chain,
+  package versions, 5 digest-pinned images, and per-gate status: G0/G2/G3
+  **PENDING** (require the main repo's D0 artifact and D10 built clients —
+  never claimed from portal-side tests), G1 PARTIAL (web leg verified),
+  G4 READY-CANDIDATE, G5 NOT-STARTED.
+- **CI lane** (`.github/workflows/ci-team.yml`): real PostgreSQL 18.4
+  service container (same digest as the dev stack) with the
+  postgres-init role split recreated, inline-JWKS synthetic identity
+  (no Keycloak container needed), full suite + explicit `pnpm test:team`
+  + build; triggers on PRs/pushes to main AND dev. Team suites fail
+  loudly when the database is absent (by design).
+- **User docs**: public `docs/sharing/team-workspaces` page (roles table,
+  browser/member/admin behavior, agent tokens, privacy model, offline
+  copies, deletion semantics — advertised features only) wired into
+  DOCS_STRUCTURE; sitemap/llms listings updated (crawl-exclusion tests
+  now assert actual `/team` paths, not substrings, since the public docs
+  page legitimately contains "team" in its slug).
+- **Rollout/rollback policy + readiness table** appended to
+  `deploy/team/README.md` (staged rollout, disabled-by-default public
+  flag, pilot metrics without content analytics, two-week defect-free
+  criterion, rollback = disable + compatible image, never reverse
+  migrations).
+
+Gates: typecheck ×3, full suite (share 64, team-server 104, portal 226),
+recursive build, `git diff --check` — all green; benchmark verified live
+in production mode.
+
+Remaining (main-repo artifacts, recorded pending in every receipt):
+G0 D0 contract artifact, G2/G3 real-client roundtrip and fault scenarios
+against D10 binaries, D3 consumer fixtures. The PR into `dev` with the
+exact remaining gates is the final step once those arrive.
+
 ## Record: 2026-09-22, P9 complete
 
 Commits:

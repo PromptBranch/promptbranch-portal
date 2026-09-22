@@ -171,6 +171,12 @@ export const DOCS_STRUCTURE: Array<{
         title: "Share a Prompt",
         description: "Publish, revoke, and import immutable prompt snapshots.",
       },
+      {
+        slug: "sharing/team-workspaces",
+        file: "sharing/team-workspaces.md",
+        title: "Team Workspaces",
+        description: "Shared approved libraries with review, roles, agent tokens and privacy guarantees.",
+      },
     ],
   },
   {

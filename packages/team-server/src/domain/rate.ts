@@ -12,6 +12,7 @@ import { teamError } from "../errors.js";
 /** Wire-level quotas from contract C8 — required, immutable in protocol v1. */
 export const WRITES_PER_MINUTE = 60;
 export const INVITATIONS_PER_HOUR = 20;
+export const READS_PER_MINUTE = 300;
 
 export async function consumeRateBucket(
   client: Pool | PoolClient,

@@ -15,7 +15,7 @@ describe("sitemap.xml", () => {
     expect(urls).toContain("https://portal.example/docs/features/library-data-and-backups");
     expect(urls).toContain("https://portal.example/docs/reference/contributing");
     // "/" + "/docs" + all 18 declared docs pages.
-    expect(urls).toHaveLength(20);
+    expect(urls).toHaveLength(21);
   });
 
   it("never lists snapshot pages (unlisted by design)", () => {

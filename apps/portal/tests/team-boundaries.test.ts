@@ -602,8 +602,16 @@ describe("request body cap", () => {
 
 describe("private-surface crawl exclusion", () => {
   it("never lists team URLs in sitemap.xml or llms.txt", async () => {
-    expect(JSON.stringify(await sitemapFn())).not.toContain("/team");
-    expect(await (await llmsRoute()).text()).not.toContain("/team");
+    // The PUBLIC docs page (/docs/sharing/team-workspaces) is indexable and
+    // legitimately listed; private /team app paths must never be.
+    const sitemapEntries = await sitemapFn();
+    for (const entry of sitemapEntries) {
+      expect(new URL(entry.url).pathname.startsWith("/team")).toBe(false);
+    }
+    const llms = await (await llmsRoute()).text();
+    for (const match of llms.matchAll(/\((https?:\/\/[^)]+)\)/g)) {
+      expect(new URL(match[1]!).pathname.startsWith("/team")).toBe(false);
+    }
   });
 
   it("keeps robots.txt disallowing the API subtree (which covers /api/team)", async () => {

@@ -1,0 +1,89 @@
+name: CI (team)
+
+# P10 CI lane: the full suite against a REAL PostgreSQL service container
+# (synthetic identity: tests validate tokens with an inline JWKS, so no
+# Keycloak container is needed). Roles mirror deploy/team/postgres-init
+# with the same synthetic credentials the harness defaults to. Existing
+# anonymous-portal tests run unchanged in the same job.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-team-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-team:
+    name: verify (team, real Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        # Same digest-pinned image as the local dev stack.
+        image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: team_admin
+          POSTGRES_PASSWORD: team_admin_dev_pw
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U team_admin"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@26
+          cache: true
+          install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create team roles (mirrors deploy/team/postgres-init)
+        run: |
+          psql postgresql://team_admin:team_admin_dev_pw@127.0.0.1:54329/postgres <<'SQL'
+            CREATE ROLE team_app LOGIN PASSWORD 'team_app_dev_pw';
+            CREATE ROLE team_migrate LOGIN PASSWORD 'team_migrate_dev_pw';
+          SQL
+
+      # Same gate order as ci.yml, plus the real-PG team suites. The team
+      # suites fail loudly (no silent skips) when the database is missing —
+      # that failure is the signal, not something to guard around.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test (full suite incl. real-PostgreSQL team suites)
+        env:
+          TEAM_TEST_DATABASE_URL: postgresql://team_admin:team_admin_dev_pw@127.0.0.1:54329/postgres
+        run: pnpm test
+
+      - name: Test (team-server suites, explicit)
+        env:
+          TEAM_TEST_DATABASE_URL: postgresql://team_admin:team_admin_dev_pw@127.0.0.1:54329/postgres
+        run: pnpm test:team
+
+      - name: Build
+        run: pnpm build

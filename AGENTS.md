@@ -46,6 +46,8 @@ pnpm team:migrate     # forward-only team-server migrations (DDL role)
 pnpm team:worker      # job worker loop (invitations, retention, purge sweeps)
 pnpm team:backup      # encrypted pg_dump + optional SQLite snapshot (30-day retention)
 pnpm team:restore     # restore + recovery window / roster reconciliation runbook
+pnpm team:benchmark   # pilot readiness benchmark (synthetic data, loopback only)
+pnpm team:integration # G-gate readiness receipt (pending legs stay pending)
 pnpm team:fixtures    # contract/G0 status; refuses non-loopback or non-synthetic config
 pnpm test:team        # @promptbranch/team-server suites against real PostgreSQL
 ```

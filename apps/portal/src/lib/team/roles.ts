@@ -1,4 +1,4 @@
-import { teamError, withWorkspaceTransaction, type TeamRole } from "@promptbranch/team-server";
+import { consumeRateBucket, teamError, withWorkspaceTransaction, READS_PER_MINUTE, type TeamRole } from "@promptbranch/team-server";
 import type { TeamService } from "./service";
 import type { HumanAuthContext } from "./auth";
 
@@ -6,7 +6,9 @@ import type { HumanAuthContext } from "./auth";
  * Read-side authorization for workspace-scoped GETs: resolves the caller's
  * CURRENT membership (fresh role + generation) inside a short transaction.
  * Server components and route adapters both use this — middleware or UI
- * hiding is never authorization.
+ * hiding is never authorization. Also consumes the shared C8 read quota
+ * (300/minute/principal/workspace) so every surface funneling through here
+ * — JSON routes and SSR pages alike — shares one Postgres bucket.
  */
 
 const ROLE_RANK: Record<TeamRole, number> = {
@@ -22,6 +24,14 @@ export async function requireMemberRole(
   workspaceId: string,
   minimumRole: TeamRole,
 ): Promise<{ role: TeamRole; generation: string; entityVersion: number }> {
+  // Read quota first (C8): 300/minute per principal per workspace, shared
+  // across API reads and SSR page loads, enforced in Postgres like writes.
+  await consumeRateBucket(
+    service.pool,
+    `read:${workspaceId}:${auth.kind === "agent" ? `agent:${auth.tokenId}` : `user:${auth.userId}`}`,
+    READS_PER_MINUTE,
+    60_000,
+  );
   if (auth.kind === "agent") {
     // Agent reads require catalog:read plus a current membership; the
     // workspace-scoped token cannot read another workspace at all. Agents
