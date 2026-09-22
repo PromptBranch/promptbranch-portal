@@ -19,6 +19,28 @@ pnpm team:dev:down                             # stop (keeps the named volume)
 docker compose -p promptbranch-team-dev -f deploy/team/compose.dev.yml down -v   # also wipe data
 ```
 
+### Run it end to end
+
+```sh
+pnpm team:dev:up        # 1. stack + synthetic realm (idempotent)
+pnpm team:migrate       # 2. forward-only schema (001–005)
+
+# 3. the portal with team features enabled — MUST be on :4317 so the
+#    Keycloak redirect URIs line up:
+set -a && source deploy/team/.env && set +a
+PORT=4317 PUBLIC_BASE_URL=http://127.0.0.1:4317 pnpm --filter @promptbranch/portal dev
+
+# 4. the job worker (invitation emails land in Mailpit's capture UI)
+pnpm team:worker
+```
+
+Then open `http://127.0.0.1:4317/team` and sign in through the local
+Keycloak with a synthetic identity — `alice@promptbranch.test` /
+`pb-team-dev-password` (see the realm section below for the full cast:
+bob/casey/dana/erin, all the same password). `GET
+/api/team/v1/health/ready` must answer `{"ready":true}`; `/team` redirects
+into the OIDC login on first visit.
+
 ## Reference addresses (contract C10)
 
 | Service | Address | Notes |
