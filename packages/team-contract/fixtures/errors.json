@@ -1,0 +1,292 @@
+{
+  "description": "One canonical example per stable error code in PB-TEAM-1. `retryable` is the value servers must put in the error body; note QUOTA_EXCEEDED is nonretryable despite its 429 status.",
+  "errors": [
+    {
+      "code": "UNAUTHENTICATED",
+      "status": 401,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "UNAUTHENTICATED",
+          "message": "A valid bearer token or web session is required.",
+          "requestId": "ee100001-0000-4000-8000-000000000001",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "SESSION_REVOKED",
+      "status": 401,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SESSION_REVOKED",
+          "message": "This session was revoked; sign in again.",
+          "requestId": "ee100002-0000-4000-8000-000000000002",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "WORKSPACE_FORBIDDEN",
+      "status": 403,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "WORKSPACE_FORBIDDEN",
+          "message": "You do not have access to this workspace.",
+          "requestId": "ee100003-0000-4000-8000-000000000003",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "ROLE_FORBIDDEN",
+      "status": 403,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "ROLE_FORBIDDEN",
+          "message": "Your workspace role does not permit this action.",
+          "requestId": "ee100004-0000-4000-8000-000000000004",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "SCOPE_FORBIDDEN",
+      "status": 403,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SCOPE_FORBIDDEN",
+          "message": "This agent token lacks the scope required for this action.",
+          "requestId": "ee100005-0000-4000-8000-000000000005",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "NOT_FOUND",
+      "status": 404,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "The requested resource does not exist.",
+          "requestId": "ee100006-0000-4000-8000-000000000006",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "VALIDATION_FAILED",
+      "status": 422,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "VALIDATION_FAILED",
+          "message": "The request body failed validation.",
+          "requestId": "ee100007-0000-4000-8000-000000000007",
+          "retryable": false,
+          "details": { "field": "title", "issue": "required" }
+        }
+      }
+    },
+    {
+      "code": "SECRET_BLOCKED",
+      "status": 422,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SECRET_BLOCKED",
+          "message": "The submitted text appears to contain a secret.",
+          "requestId": "ee100008-0000-4000-8000-000000000008",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "STALE_BASE",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "STALE_BASE",
+          "message": "The approved head moved since this proposal was based on it.",
+          "requestId": "ee100009-0000-4000-8000-000000000009",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "STALE_ENTITY",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "STALE_ENTITY",
+          "message": "The entity version does not match the current version.",
+          "requestId": "ee100010-0000-4000-8000-000000000010",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "SELF_REVIEW",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SELF_REVIEW",
+          "message": "A proposal cannot be reviewed by its own author.",
+          "requestId": "ee100011-0000-4000-8000-000000000011",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "LAST_OWNER",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "LAST_OWNER",
+          "message": "The last owner cannot be removed or demoted.",
+          "requestId": "ee100012-0000-4000-8000-000000000012",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "COMMAND_ID_REUSED",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "COMMAND_ID_REUSED",
+          "message": "This command id was already used with a different request.",
+          "requestId": "ee100013-0000-4000-8000-000000000013",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "MEMBERSHIP_CHANGED",
+      "status": 409,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "MEMBERSHIP_CHANGED",
+          "message": "Your membership generation changed; re-sync before writing.",
+          "requestId": "ee100014-0000-4000-8000-000000000014",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "CURSOR_EXPIRED",
+      "status": 410,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "CURSOR_EXPIRED",
+          "message": "The change-feed cursor is older than the retention window; bootstrap again.",
+          "requestId": "ee100015-0000-4000-8000-000000000015",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "SNAPSHOT_EXPIRED",
+      "status": 410,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SNAPSHOT_EXPIRED",
+          "message": "The bootstrap snapshot expired; start a new bootstrap.",
+          "requestId": "ee100016-0000-4000-8000-000000000016",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "SERVER_EPOCH_CHANGED",
+      "status": 410,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "SERVER_EPOCH_CHANGED",
+          "message": "The server epoch changed; discard the cache and bootstrap again.",
+          "requestId": "ee100017-0000-4000-8000-000000000017",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "PROTOCOL_UNSUPPORTED",
+      "status": 426,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "PROTOCOL_UNSUPPORTED",
+          "message": "This server requires a newer team protocol major.",
+          "requestId": "ee100018-0000-4000-8000-000000000018",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "RATE_LIMITED",
+      "status": 429,
+      "retryable": true,
+      "body": {
+        "error": {
+          "code": "RATE_LIMITED",
+          "message": "Too many requests; honor Retry-After.",
+          "requestId": "ee100019-0000-4000-8000-000000000019",
+          "retryable": true
+        }
+      }
+    },
+    {
+      "code": "QUOTA_EXCEEDED",
+      "status": 429,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "QUOTA_EXCEEDED",
+          "message": "A workspace quota is exhausted; resolve capacity before retrying.",
+          "requestId": "ee100020-0000-4000-8000-000000000020",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "code": "UNAVAILABLE",
+      "status": 503,
+      "retryable": true,
+      "body": {
+        "error": {
+          "code": "UNAVAILABLE",
+          "message": "The service is temporarily unavailable.",
+          "requestId": "ee100021-0000-4000-8000-000000000021",
+          "retryable": true
+        }
+      }
+    },
+    {
+      "code": "PAYLOAD_TOO_LARGE",
+      "status": 413,
+      "retryable": false,
+      "body": {
+        "error": {
+          "code": "PAYLOAD_TOO_LARGE",
+          "message": "The request body exceeds the 256 KiB ceiling.",
+          "requestId": "ee100022-0000-4000-8000-000000000022",
+          "retryable": false
+        }
+      }
+    }
+  ]
+}

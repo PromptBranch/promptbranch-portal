@@ -21,7 +21,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ w: 
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
     const { w, p } = await context.params;
-    await requireMemberRole(service, auth, w, "contributor");
+    // Agents pass at the contributor floor; the own-proposal check below
+    // enforces the C4 scoping.
+    await requireMemberRole(service, auth, w, "contributor", { agentOwnScoped: true });
     const detail = await getProposalDetail(service.pool, w, p);
     if (auth.kind === "agent" && detail.proposal.author.agentTokenId !== auth.tokenId) {
       // Agents see only their own proposals (contract §C4).

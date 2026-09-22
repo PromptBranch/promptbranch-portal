@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 const createSchema = z.strictObject({
   commandId: z.string().uuid(),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(100),
 });
 
 /** POST /api/team/v1/workspaces — 201 on creation, 200 on idempotent replay. */

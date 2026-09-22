@@ -1,0 +1,30 @@
+{
+  "name": "@promptbranch/team-client",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "PromptBranch team protocol PB-TEAM-1 client: origin-pinned, schema-validated HTTP transport with bounded retries and redacted typed errors. Zero Electron/DOM dependencies.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@promptbranch/team-contract": "workspace:*",
+    "openid-client": "6.8.8",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.3.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,76 @@
+# D0 artifact provenance — @promptbranch/team-contract
+
+Vendored 2026-09-22 at the start of the G0 gate.
+
+- Source repository: /Users/shai/Desktop/Code/china/PromptBranch (main repo,
+  parallel-developed; consumed artifact-only, never modified in place)
+- Source commit: 64efdca17a38e870f7a70e4fb1e22a2f12f9338f (💄 feat(desktop): add team workspace navigation and catalogue)
+- Artifact version: 1.0.0 — protocol 1, features catalog-v1, review-v1,
+  changes-v1, agent-token-v1 (compatibility.json)
+- Embedded specification this portal implemented against: PB-TEAM-1 v1.0.0,
+  sha256 4264f958df5262486c2eff1c364b4c88056e7eea3b39aacf9266cdb797b0a5ce
+
+Intentional adaptations (recorded here, nothing else touched):
+- package.json — `private: true` added (consumed via workspace:*; publishing
+  stays the main repo's release action) and the build script's reference to
+  the main repo's root clean-package-output helper simplified to a plain
+  tsc emit.
+- The zod dependency stays at the artifact's own 4.4.3: re-versioning it to
+  the portal's 4.6.5 changed zod-to-JSON-schema output and failed the
+  artifact's own openapi snapshot test, so the pinned version is
+  load-bearing.
+
+Per-file sha256 manifest of the vendored tree:
+
+18a67fe5728dfc19ebae83279b6518111063395f89dc4e5cda8f47da1af4ae5f  LICENSE
+84b9ca6e68ea997e460f9a559b8b987df48e7ef8aa9f20eb73a9d09707f6c7e6  README.md
+9e539bb1e8919b90ea87d6819e939033a6ba5c806b74b3264028a715cc3aebcd  THIRD_PARTY_NOTICES.md
+7d0e5021983d0d1a230bb6723558a63a85407f63fd6b8115fb3f9e14e3722953  compatibility.json
+a1283191ecc426dabb678d95b3e95dde31034ebee7771cf34d50b6a83d5310d1  openapi.json
+2b2ceb98087acd13fd976febcf3b1d914bc49a2f267decb398172c6acc6744b0  package.json
+75ac663817f01239a35574e463aeaeaf1c76cea091bb609937a6aeb52b424fb0  tsconfig.build.json
+35cf9f3bf983b478bbb99c420f8fabf00def100ed7286f62a9b7697329ca6101  tsconfig.json
+73105c1f5a2ca3e53da4ac4e965c441533529505dcd53bc700d08c356e09f7df  vitest.config.ts
+479a12db37d2a88d27796d1145bcb9606a4cde87b70fae7d8e3ed6da42c8cde4  dist/api.d.ts
+c697899408286dd362843f4931522898cf0abe7e1b68e9afae3cc43ffcb84393  dist/api.js
+781d8b6c5bf513d64458817ad359fab3f13a69e5677db1306562cb80aac2be16  dist/entities.d.ts
+7f0b0a13c4656a3bd99caaa4770b3150c936695a0a48a38ff55023454b40cb43  dist/entities.js
+008f4514c78064d9c77331a2052202da119398b4696356cc30a107f057f7a16e  dist/errors.d.ts
+f4d7916b7ce1d408930169ca23b32828992962bc51dc2639010ebb93397ec765  dist/errors.js
+03318769d5329811148e1d16ccf1c9d583cdd6e3410bded8a85cc48bea1c16cc  dist/ids.d.ts
+f2e834cddd429dfcbc95f859387f7a75b8db0a121eced170d1b87d8a3e2da091  dist/ids.js
+8bd451b7098542279fd3759557cee313077f34c657a850f8bb5a2bf21c6d3c69  dist/index.d.ts
+8bd451b7098542279fd3759557cee313077f34c657a850f8bb5a2bf21c6d3c69  dist/index.js
+af4d69c8011ca7cafb6752cd17ff289811ab9130a5fd8dde79980a40d6b8b92c  dist/limits.d.ts
+5fa75e805f91b7eb97caa727f6734778de0210eebaccd73548492f1971356289  dist/limits.js
+59663f32aeeb9944a5e273a6cea424169279e634fa0dc5e2877b88d1fe905541  dist/openapi.d.ts
+e0c1bbdb55a69f45931397681b300a0f8159d88ee8eb30cb1c977e5451a8ec90  dist/openapi.js
+f49d6501cc9fe455d9f26e4acf02ca1676a7727c047cdab516a612a6eaea8ae1  dist/operations.d.ts
+7bd3dd2e782c811b47ef75e301bce20f367082740944bd54f4f6f5eff8b1584d  dist/operations.js
+8c91d04f0e4d962e0e8b59f88930ae92b682c6aa175ef46fd0570004b036f76d  dist/testing/fixtures.d.ts
+9fa2a7471fbdd90a94c8ecfc840a691004439d52f2d81f1129b74f075a706f2e  dist/testing/fixtures.js
+5dda8fdfca1165e5682835b37cf0657895a3b54d02dd3f7d81340556d353f2cb  dist/testing/index.d.ts
+5dda8fdfca1165e5682835b37cf0657895a3b54d02dd3f7d81340556d353f2cb  dist/testing/index.js
+9b4614ca65d3725a6862542fe4c9a8d5351bf8098a0650000ecfab3f36f42655  dist/testing/mock-server.d.ts
+703634ab46357467970e98990277db9d2254318061a4db65edf10e36a63732c6  dist/testing/mock-server.js
+bfdfc5aabda2885cd37c6735301255d5a021a820936720e5284dd4362e4addab  fixtures/catalog.changes.json
+0c9819fad6cdfd2997bf8face19e80bde71199ec21e13c9b6f5233f0139bd4d9  fixtures/catalog.seed.json
+75923554e38bc2f4356f8cb0941b58764836a25b3021a07e29b19a2e76a60946  fixtures/errors.json
+20a8231ef5b1529dc2c8a3721cf4beb995bfb703eb6a3dd6595f72b58252e891  fixtures/membership-revocation.json
+36db789200b3c1e00885cc785be2619346a7d1439df8db6dc6524dd8f43a500d  fixtures/proposal.lifecycle.json
+bb6d7dcb09a755b3e2e75b064dfed042c2b66100e1a45225f52c55f2905aa96e  scripts/generate-openapi.mjs
+79d2ff33b88aab10922db930f79336242362f616ba1158b2b1a10e46ffce0dab  scripts/mock.mjs
+3d99c68300c41e23cf1d041992d7eda69c212f44391a4fc42bbc760b219e5fa8  src/api.ts
+58b311500b3bad4e10d414b7499a200aac0b2b40d9bc9ac3e7676481c8f59b0a  src/entities.ts
+6e75dd68a48bc4aa62b815c88ce275663e70b0bf7cdc48107f7be908d273f747  src/errors.ts
+68ff7ce580254454397cdecb1a8efdfacf1243e14dc3a6276f5ef6668cebcbca  src/ids.ts
+8bd451b7098542279fd3759557cee313077f34c657a850f8bb5a2bf21c6d3c69  src/index.ts
+e9afa4b99238d038e9f8e0188279ad4557b32e65a9e76af8f9f13720d9742134  src/limits.ts
+be9f5d3fe9130eb6fddb5827be55615ef6e0d83917bb88bc5595460427dcc9db  src/openapi.ts
+53eaa8d9a0e4f93ea5c3816ee47ee80fad7120abe37de8a298fd29966f966e48  src/operations.ts
+753c08c69b7dba7bc5ac0156c19279ea4787f82c714a5059c8f37f3ce90c67a8  src/testing/fixtures.ts
+5dda8fdfca1165e5682835b37cf0657895a3b54d02dd3f7d81340556d353f2cb  src/testing/index.ts
+836c9ab682391aadd672b4918fafdaab5b9422e19be936c58a86b6003d774b34  src/testing/mock-server.ts
+635e91ef31f7ceb419d2ef371ac89f900c9b5a2ee7c1f5a2c0a38948374a593b  tests/compatibility.test.ts
+2d781509f4208f875ab4f21c45142e2f1c107ff4989ee82cfeb0eba211943791  tests/mock-server.test.ts
+0aec0a5afe2168294d82d93dc8a65eb592135240856ddaa411a6c2dfe23ca481  tests/schemas.test.ts

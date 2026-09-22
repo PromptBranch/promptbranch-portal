@@ -1,0 +1,81 @@
+{
+  "description": "Membership revocation fixture: role change and removal rotate membershipGeneration; the removed member's existing bearer and agent credentials fail immediately, and commands sent with the old generation fail MEMBERSHIP_CHANGED. Covers invitation/member/workspace operation variants.",
+  "workspaceId": "11111111-1111-4111-8111-111111111111",
+  "serverEpoch": "ee000000-0000-4000-8000-000000000001",
+  "generationBefore": "f1111111-1111-4111-8111-111111111111",
+  "generationAfter": "f2222222-2222-4222-8222-222222222222",
+  "invitationId": "cc000001-0000-4000-8000-000000000001",
+  "envelopes": {
+    "memberRole": {
+      "commandId": "ca000201-0000-4000-8000-000000000201",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "member.role",
+        "userId": "21111114-1111-4111-8111-111111111114",
+        "role": "contributor",
+        "expectedEntityVersion": 1
+      }
+    },
+    "memberRemove": {
+      "commandId": "ca000202-0000-4000-8000-000000000202",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "member.remove",
+        "userId": "21111113-1111-4111-8111-111111111113",
+        "expectedEntityVersion": 1
+      }
+    },
+    "memberRemoveLastOwner": {
+      "commandId": "ca000203-0000-4000-8000-000000000203",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "member.remove",
+        "userId": "21111111-1111-4111-8111-111111111111",
+        "expectedEntityVersion": 1
+      }
+    },
+    "invitationCreate": {
+      "commandId": "ca000204-0000-4000-8000-000000000204",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "invitation.create",
+        "email": "erin@example.test",
+        "role": "contributor"
+      }
+    },
+    "invitationRevoke": {
+      "commandId": "ca000205-0000-4000-8000-000000000205",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "invitation.revoke",
+        "invitationId": "cc000001-0000-4000-8000-000000000001"
+      }
+    },
+    "workspaceRename": {
+      "commandId": "ca000206-0000-4000-8000-000000000206",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "workspace.rename",
+        "name": "Alpha Prime",
+        "expectedEntityVersion": 1
+      }
+    },
+    "workspaceDelete": {
+      "commandId": "ca000207-0000-4000-8000-000000000207",
+      "membershipGeneration": "f1111111-1111-4111-8111-111111111111",
+      "operation": {
+        "type": "workspace.delete",
+        "confirmName": "Alpha",
+        "expectedEntityVersion": 1
+      }
+    }
+  },
+  "expectations": {
+    "removedMemberBearer": "pbtest_contributor",
+    "removedMemberAgentBearer": "pbtest_agent",
+    "memberRemoveLastOwner": { "status": 409, "code": "LAST_OWNER" },
+    "afterRemoval": { "status": 403, "code": "WORKSPACE_FORBIDDEN" },
+    "oldGenerationCommand": { "status": 409, "code": "MEMBERSHIP_CHANGED" },
+    "replayAfterRemoval": "stored receipts are never returned to a removed member"
+  }
+}

@@ -61,8 +61,8 @@ describe("health/ready", () => {
   it("reports ok with a reachable database and minimal state only", async () => {
     const response = await healthRoute(request("health/ready"));
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string };
-    expect(body).toEqual({ status: "ok" });
+    const body = (await response.json()) as { ready: boolean };
+    expect(body).toEqual({ ready: true });
     expect(JSON.stringify(body)).not.toMatch(/postgres|postgresql|password|@|%|:\d{4}/);
   });
 
@@ -71,8 +71,9 @@ describe("health/ready", () => {
     resetTeamServiceCache();
     try {
       const response = await healthRoute(request("health/ready"));
-      expect(response.status).toBe(200);
-      expect(((await response.json()) as { status: string }).status).toBe("disabled");
+      // C2: disabled team feature is a plain not-ready; no state vocabulary.
+      expect(response.status).toBe(503);
+      expect(((await response.json()) as { ready: boolean }).ready).toBe(false);
     } finally {
       process.env.TEAM_ENABLED = undefined;
       resetTeamServiceCache();
@@ -105,7 +106,7 @@ describe("recovery gate", () => {
       expect(((await refused.json()) as { error: { code: string } }).error.code).toBe("UNAVAILABLE");
       const health = await healthRoute(request("health/ready"));
       expect(health.status).toBe(503);
-      expect(((await health.json()) as { status: string }).status).toBe("recovery");
+      expect(((await health.json()) as { ready: boolean }).ready).toBe(false);
     } finally {
       process.env.TEAM_RECOVERY_MODE = undefined;
     }

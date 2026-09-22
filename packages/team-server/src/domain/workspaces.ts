@@ -65,8 +65,8 @@ export async function createWorkspace(
 ): Promise<{ workspace: WorkspaceDto; created: boolean }> {
   const { userId } = requireHuman(principal);
   const name = input.name.trim();
-  if (name.length < 1 || name.length > 200) {
-    throw teamError("VALIDATION_FAILED", "Workspace name must be 1-200 characters after trimming");
+  if (name.length < 1 || name.length > 100) {
+    throw teamError("VALIDATION_FAILED", "Workspace name must be 1-100 characters after trimming");
   }
   const hash = requestHash({ kind: "workspace.create", userId, name, commandId: input.commandId });
 
@@ -168,8 +168,8 @@ export async function renameWorkspace(
     throw teamError("STALE_ENTITY", "Workspace was modified; refresh and retry");
   }
   const name = input.name.trim();
-  if (name.length < 1 || name.length > 200) {
-    throw teamError("VALIDATION_FAILED", "Workspace name must be 1-200 characters after trimming");
+  if (name.length < 1 || name.length > 100) {
+    throw teamError("VALIDATION_FAILED", "Workspace name must be 1-100 characters after trimming");
   }
   const updated = (await tx.query<{ entity_version: number }>(
     `UPDATE team_workspaces SET name = $2, entity_version = entity_version + 1, updated_at = now()

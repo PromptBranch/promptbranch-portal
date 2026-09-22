@@ -1,0 +1,61 @@
+{
+  "name": "@promptbranch/team-contract",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "fixtures",
+    "openapi.json",
+    "compatibility.json",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing/index.d.ts",
+        "import": "./dist/testing/index.js",
+        "default": "./dist/testing/index.js"
+      },
+      "./openapi.json": "./openapi.json",
+      "./compatibility.json": "./compatibility.json"
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "PromptBranch team protocol PB-TEAM-1: runtime Zod schemas, derived types, OpenAPI document, canonical fixtures and a loopback mock server. Runtime root is free of Electron, database, HTTP framework and Node-only dependencies.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts",
+    "./openapi.json": "./openapi.json",
+    "./compatibility.json": "./compatibility.json"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "openapi": "pnpm build && node scripts/generate-openapi.mjs",
+    "mock": "node scripts/mock.mjs"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.3.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  },
+  "private": true
+}

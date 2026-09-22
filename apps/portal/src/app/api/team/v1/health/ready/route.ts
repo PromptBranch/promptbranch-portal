@@ -7,12 +7,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/team/v1/health/ready — readiness for orchestrators. Minimal
- * state only: no internal addresses, keys, database names or counters.
- * `recovery` is a deliberate 503: the operator is mid-restore and ordinary
- * traffic is intentionally refused. This route never requires auth or the
- * protocol header, and works while the team service is unregistered
- * (disabled or recovery mode).
+ * GET /api/team/v1/health/ready — infrastructure only (contract C2):
+ * `{ready:true}` 200 or `{ready:false}` 503, no private data or dependency
+ * details. Recovery mode is a deliberate not-ready: the operator is
+ * mid-restore and ordinary traffic is intentionally refused. Never requires
+ * auth or the protocol header, and works while the team service is
+ * unregistered (disabled or recovery mode).
  */
 export async function GET(_request: NextRequest) {
   const requestId = randomUUID();
@@ -23,18 +23,17 @@ export async function GET(_request: NextRequest) {
   };
 
   if (!teamEnabled()) {
-    const disabled = process.env.TEAM_ENABLED === "false";
-    return Response.json({ status: disabled ? "disabled" : "recovery" }, { status: disabled ? 200 : 503, headers });
+    return Response.json({ ready: false }, { status: 503, headers });
   }
 
   const service = getTeamService();
   if (!service) {
-    return Response.json({ status: "degraded" }, { status: 503, headers });
+    return Response.json({ ready: false }, { status: 503, headers });
   }
   try {
     await service.pool.query("SELECT 1");
-    return Response.json({ status: "ok" }, { status: 200, headers });
+    return Response.json({ ready: true }, { status: 200, headers });
   } catch {
-    return Response.json({ status: "degraded" }, { status: 503, headers });
+    return Response.json({ ready: false }, { status: 503, headers });
   }
 }

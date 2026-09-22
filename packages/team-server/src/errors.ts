@@ -26,7 +26,8 @@ export const TEAM_ERROR_CODES = [
 
 export type TeamErrorCode = (typeof TEAM_ERROR_CODES)[number];
 
-const HTTP_STATUS: Readonly<Record<TeamErrorCode, { status: number; retryable: boolean }>> = {
+/** Status/retryable per code — exported for contract-fixture conformance. */
+export const TEAM_ERROR_HTTP_STATUS: Readonly<Record<TeamErrorCode, { status: number; retryable: boolean }>> = {
   UNAUTHENTICATED: { status: 401, retryable: false },
   SESSION_REVOKED: { status: 401, retryable: false },
   WORKSPACE_FORBIDDEN: { status: 403, retryable: false },
@@ -68,8 +69,8 @@ export class TeamError extends Error {
     super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
     this.name = "TeamError";
     this.code = code;
-    this.httpStatus = HTTP_STATUS[code].status;
-    this.retryable = HTTP_STATUS[code].retryable;
+    this.httpStatus = TEAM_ERROR_HTTP_STATUS[code].status;
+    this.retryable = TEAM_ERROR_HTTP_STATUS[code].retryable;
     this.details = options.details;
   }
 }

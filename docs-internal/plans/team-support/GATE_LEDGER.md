@@ -2,6 +2,81 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-22, G0/G2/G3 — contract artifact adoption and real-client gates
+
+Commits:
+
+- `feat(team): adopt the D0 contract artifact and close the real-client gates`
+
+Context: the main repository delivered `@promptbranch/team-contract@1.0.0`
+(the D0 artifact, with D3 consumer fixtures) and
+`@promptbranch/team-client@0.1.0` (the real client library). Both are
+vendored artifact-style — source commit + per-file sha256 recorded in
+`docs-internal/contracts/D0-provenance.md` and
+`D10-client-provenance.md`; the main repo is never modified in place.
+
+Scope delivered:
+
+- **G0 CLOSED.** `operations.ts` no longer mirrors the spec — the wire
+  schemas (operation union, envelope), limits vocabulary and error
+  taxonomy are imported from the artifact. Policy decisions (C4 role
+  floors, agent scope/allowlist rules, fresh-login, result kinds) remain
+  server-side and were re-verified against the C4 table verbatim.
+  The loud G0 skip became a real lockstep suite
+  (`apps/portal/tests/team-contract.test.ts`): compatibility metadata,
+  error codes + retryable flags (22/22 identical), limits deep-equality,
+  23-operation enumeration.
+- **Strictness fallout fixed**: the artifact requires fields our mirror
+  defaulted (tagIds/collectionIds/description/changeNote/comment/
+  supersedesProposalId now REQUIRED) and caps workspace names at 100 (was
+  200) — internal callers and tests updated; `health/ready` adopted the
+  spec shape `{ready:true|false}` (the `{status}` vocabulary was ours).
+  Divergence note: the embedded spec does NOT bound `changeNote` (§C2
+  bounds rationale/comment/note only) — our 8,000 bound was an
+  over-tightening; the artifact is faithful and was adopted.
+- **D3 CLOSED.** The artifact's consumer fixtures drive the real routes
+  (`apps/portal/tests/team-contract-conformance.test.ts`): the canonical
+  error table (status + retryable per code), the seed catalogue read back
+  through artifact response schemas, the C10 normative proposal envelopes
+  (submit → receipt replay, distinct-reviewer approval, note/run
+  reporting, candidate privacy), and the membership-revocation
+  expectations (last-owner 409, removal, forbidden access). Fixture
+  bearer labels are mapped to real signed tokens — auth is C5, orthogonal
+  to the C4 semantics under test. Proposal ids are server-authored, so
+  proposal-scoped envelopes substitute the live receipt ids.
+- **G2/G3 CLOSED (client-library leg).** The real
+  `@promptbranch/team-client` drives a live portal over actual HTTP
+  (`apps/portal/tests/team-real-client.test.ts`): full roundtrip (info →
+  workspace → catalogue reads → agent proposal submit → distinct human
+  approval → feed → bootstrap pages) and the fault scenarios — a dropped
+  command response replays from the stored receipt with EXACTLY one
+  mutation, duplicate delivery never double-mutates, and a revoked agent
+  credential fails closed on the next call.
+- **Real-client-driven bug fixes** (the whole point of G2):
+  1. Agent-authored actors serialized `userId: ""`/`displayName: "Agent"`
+     — the artifact's actorSchema requires the OWNING member's UUID
+     (C1: agent authority is always scoped to a human). Fixed in the
+     catalogue record builders and every DTO mapper (revisions,
+     proposals, comments, activity).
+  2. Agents were rejected at the contributor floor on proposal reads;
+     the contract scopes agents to their OWN proposals (list/detail/
+     comments routes now pass agents with own-scoping; the P8 matrix
+     expectations updated to the contract semantics).
+- **Infra**: portal vitest split into two projects — `unit` (parallel)
+  and `http-suites` (real-server suites run strictly sequentially; they
+  starved under 40-way fork parallelism). `pnpm test` runs both lanes.
+  Vendored-package build scripts detached from the main repo's root
+  helpers; team-client tsconfig gains DOM lib for stream-reader types
+  (both recorded in the provenance manifests).
+
+Gates: typecheck ×4 packages, full suite — share 64, contract 60,
+team-server 104, team-client 154 (its own suite), portal 243 — build,
+`git diff --check` — all green.
+
+Remaining: desktop-app/MCP-server end-to-end legs (main-repo integration
+work), G4 pilot operation, G5 release. Next step per the plan: PR from
+`feature/teams-portal` into `dev` with this receipt.
+
 ## Record: 2026-09-22, P10 complete (portal side)
 
 Commits:

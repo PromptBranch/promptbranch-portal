@@ -1,211 +1,45 @@
-import { z } from "zod";
+import type { CommandEnvelope, TeamOperation } from "@promptbranch/team-contract";
+import { commandEnvelopeSchema, teamOperationSchema, roleSchema } from "@promptbranch/team-contract";
+import type { z } from "zod";
+import type { Scope } from "../auth/principal.js";
 
 /**
- * Command envelope validation — the P3 subset of the PB-TEAM-1 `TeamOperation`
- * union (contract §C4 rows for membership/invitation/workspace management).
+ * G0: request schemas come from the owned `@promptbranch/team-contract`
+ * artifact (vendored at packages/team-contract; provenance and per-file
+ * hashes in docs-internal/contracts/D0-provenance.md). This module keeps
+ * only the portal's POLICY decisions from the C4 table — role floors,
+ * agent scope/allowlist rules, fresh-login requirements and result kinds —
+ * which are server behavior, not wire shape.
  *
- * G0 NOTE: the owned `@promptbranch/team-contract` artifact has not been
- * delivered yet. These schemas mirror the embedded PB-TEAM-1 specification
- * field-for-field and must be REPLACED by the imported contract schemas when
- * the D0 artifact arrives — they are an implementation of the accepted
- * specification, never a divergent alternative. Operations from later phases
- * (prompt, proposal, tag, collection, comment, note, run) are deliberately
- * absent and unknown types are rejected here until their phase lands with
- * the same pattern.
+ * Strictness note: the artifact makes optional-looking fields REQUIRED
+ * (tagIds, collectionIds, description, changeNote, comment,
+ * supersedesProposalId) — clients must send them explicitly, matching the
+ * C4 field lists. The embedded PB-TEAM-1 bound list (§C2 line 84) bounds
+ * rationale/comment/note at 8,000 but deliberately leaves changeNote a
+ * plain string; the request byte cap is its effective bound.
  */
 
-export const teamRoleSchema = z.enum(["owner", "maintainer", "contributor", "viewer"]);
-export type TeamRole = z.infer<typeof teamRoleSchema>;
+export { commandEnvelopeSchema, teamOperationSchema };
+export type { CommandEnvelope, TeamOperation };
 
-const uuid = z.string().uuid();
-const positiveVersion = z.number().int().positive();
+/** Historical local name for the operation union. */
+export type WorkspaceOperation = TeamOperation;
 
-const idList = (max: number) => z.array(uuid).max(max);
+/** The C4 Role vocabulary (re-exported so callers share one definition). */
+export const teamRoleSchema = roleSchema;
+export type TeamRole = z.infer<typeof roleSchema>;
 
 /** Roles an invitation may grant (owner is never grantable by invitation). */
-export const invitableRoleSchema = z.enum(["maintainer", "contributor", "viewer"]);
-
-export const workspaceOperationSchema = z.discriminatedUnion("type", [
-  z.strictObject({
-    type: z.literal("invitation.create"),
-    email: z.email().max(320),
-    role: invitableRoleSchema,
-  }),
-  z.strictObject({
-    type: z.literal("invitation.revoke"),
-    invitationId: uuid,
-  }),
-  z.strictObject({
-    type: z.literal("member.role"),
-    userId: uuid,
-    role: teamRoleSchema,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("member.remove"),
-    userId: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("workspace.rename"),
-    name: z.string().refine((v) => v.trim().length >= 1 && v.trim().length <= 200, {
-      message: "name must be 1-200 characters after trimming",
-    }),
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("workspace.delete"),
-    confirmName: z.string().min(1).max(200),
-    expectedEntityVersion: positiveVersion,
-  }),
-  // ---- P4: approved libraries and collaboration ------------------------
-  z.strictObject({
-    type: z.literal("prompt.create"),
-    title: z.string().min(1).max(200),
-    description: z.string().max(2000).default(""),
-    content: z.string().min(1).max(65_536),
-    tagIds: idList(20).default([]),
-    collectionIds: idList(20).default([]),
-    changeNote: z.string().max(8000).default(""),
-  }),
-  z.strictObject({
-    type: z.literal("prompt.metadata"),
-    promptId: uuid,
-    title: z.string().min(1).max(200),
-    description: z.string().max(2000).default(""),
-    tagIds: idList(20).default([]),
-    collectionIds: idList(20).default([]),
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("prompt.archive"),
-    promptId: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("prompt.restore"),
-    promptId: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("prompt.rollback"),
-    promptId: uuid,
-    targetRevisionId: uuid,
-    expectedApprovedRevisionId: uuid,
-    reason: z.string().min(1).max(8000),
-  }),
-  z.strictObject({
-    type: z.literal("proposal.submit"),
-    promptId: uuid,
-    baseRevisionId: uuid,
-    content: z.string().min(1).max(65_536),
-    rationale: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
-      message: "rationale must be nonblank and at most 8000 characters",
-    }),
-    supersedesProposalId: uuid.nullable().default(null),
-  }),
-  z.strictObject({
-    type: z.literal("proposal.withdraw"),
-    proposalId: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("proposal.review"),
-    proposalId: uuid,
-    expectedEntityVersion: positiveVersion,
-    candidateRevisionId: uuid,
-    candidateContentHash: z.string().regex(/^[0-9a-f]{64}$/),
-    expectedApprovedRevisionId: uuid,
-    decision: z.enum(["approve", "reject"]),
-    comment: z.string().max(8000).default(""),
-  }),
-  z.strictObject({
-    type: z.literal("comment.add"),
-    proposalId: uuid,
-    body: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
-      message: "comment must be nonblank and at most 8000 characters",
-    }),
-  }),
-  z.strictObject({
-    type: z.literal("tag.create"),
-    name: z.string().refine((v) => v.trim().length >= 1 && v.trim().length <= 50, {
-      message: "tag name must be 1-50 characters after trimming",
-    }),
-  }),
-  z.strictObject({
-    type: z.literal("tag.rename"),
-    id: uuid,
-    name: z.string().refine((v) => v.trim().length >= 1 && v.trim().length <= 50, {
-      message: "tag name must be 1-50 characters after trimming",
-    }),
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("tag.delete"),
-    id: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("collection.create"),
-    name: z.string().refine((v) => v.trim().length >= 1 && v.trim().length <= 100, {
-      message: "collection name must be 1-100 characters after trimming",
-    }),
-  }),
-  z.strictObject({
-    type: z.literal("collection.rename"),
-    id: uuid,
-    name: z.string().refine((v) => v.trim().length >= 1 && v.trim().length <= 100, {
-      message: "collection name must be 1-100 characters after trimming",
-    }),
-    expectedEntityVersion: positiveVersion,
-  }),
-  z.strictObject({
-    type: z.literal("collection.delete"),
-    id: uuid,
-    expectedEntityVersion: positiveVersion,
-  }),
-  // ---- P6: agent-scoped activity ---------------------------------------
-  z.strictObject({
-    type: z.literal("note.add"),
-    promptId: uuid,
-    revisionId: uuid,
-    body: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
-      message: "note must be nonblank and at most 8000 characters",
-    }),
-  }),
-  z.strictObject({
-    type: z.literal("run.report"),
-    promptId: uuid,
-    revisionId: uuid,
-    body: z.string().refine((v) => v.trim().length >= 1 && v.length <= 8000, {
-      message: "run summary must be nonblank and at most 8000 characters",
-    }),
-    model: z.string().max(200).nullable(),
-    status: z.enum(["completed", "failed", "cancelled"]),
-    latencyMs: z.number().int().min(0).nullable(),
-    inputTokens: z.number().int().min(0).nullable(),
-    outputTokens: z.number().int().min(0).nullable(),
-    estimatedCostUsd: z.number().min(0).finite().nullable(),
-  }),
-]);
-
-export type WorkspaceOperation = z.infer<typeof workspaceOperationSchema>;
-
-export const commandEnvelopeSchema = z.strictObject({
-  commandId: uuid,
-  membershipGeneration: uuid,
-  operation: workspaceOperationSchema,
-});
-
-export type CommandEnvelope = z.infer<typeof commandEnvelopeSchema>;
+export const invitableRoleSchema = roleSchema.exclude(["owner"]);
+export type InvitableRole = z.infer<typeof invitableRoleSchema>;
 
 /** The one operation that requires a fresh sign-in (contract §C4). */
-export function requiresFreshLogin(operation: WorkspaceOperation): boolean {
+export function requiresFreshLogin(operation: TeamOperation): boolean {
   return operation.type === "workspace.delete";
 }
 
-/** Minimum role each P3 operation demands (server-side truth, contract §C1). */
-export function requiredRole(operation: WorkspaceOperation): TeamRole {
+/** Minimum role each operation demands (C4 table; server-side truth). */
+export function requiredRole(operation: TeamOperation): TeamRole {
   switch (operation.type) {
     // Membership/invitation/workspace management stays owner-only (C4).
     case "invitation.create":
@@ -238,7 +72,7 @@ export function requiredRole(operation: WorkspaceOperation): TeamRole {
 }
 
 /** Scopes an AGENT principal must hold for an operation (humans need none). */
-export function requiredScopes(operation: WorkspaceOperation): Scope[] {
+export function requiredScopes(operation: TeamOperation): Scope[] {
   switch (operation.type) {
     case "proposal.submit":
     case "proposal.withdraw":
@@ -254,7 +88,7 @@ export function requiredScopes(operation: WorkspaceOperation): Scope[] {
 }
 
 /** Operations an agent may execute at all — everything else is human-only. */
-export const AGENT_ALLOWED_OPERATIONS: ReadonlySet<WorkspaceOperation["type"]> = new Set([
+export const AGENT_ALLOWED_OPERATIONS: ReadonlySet<TeamOperation["type"]> = new Set([
   "proposal.submit",
   "proposal.withdraw",
   "comment.add",
@@ -275,10 +109,9 @@ export type CommandResultKind =
   | "collection"
   | "activityItem";
 
-import type { Scope } from "../auth/principal.js";
 export const SCOPE_VALUES: readonly Scope[] = ["catalog:read", "proposal:write", "note:write", "run:write"];
 
-export function resultKind(operation: WorkspaceOperation): CommandResultKind {
+export function resultKind(operation: TeamOperation): CommandResultKind {
   switch (operation.type) {
     case "invitation.create":
     case "invitation.revoke":

@@ -62,7 +62,8 @@ const receipt = {
   contract: {
     spec: "PB-TEAM-1 v1.0.0 (embedded in the implementation plan)",
     sha256File: contractSha(),
-    ownedD0Artifact: null,
+    ownedD0Artifact: "@promptbranch/team-contract@1.0.0 (vendored; see docs-internal/contracts/D0-provenance.md)",
+    clientLibrary: "@promptbranch/team-client@0.1.0 (vendored; see docs-internal/contracts/D10-client-provenance.md)",
   },
   database: {
     migrations: readdirSync(join(repoRoot, "packages", "team-server", "migrations"))
@@ -73,20 +74,23 @@ const receipt = {
   pinnedImages: pinnedImages(),
   gates: {
     G0_contract_artifact: {
-      status: "PENDING",
-      reason: "requires the main repo's owned @promptbranch/team-contract D0 artifact; the embedded spec v1.0.0 is accepted as specification only (hash recorded above)",
+      status: "CLOSED",
+      evidence:
+        "@promptbranch/team-contract@1.0.0 vendored (source commit recorded in docs-internal/contracts/D0-provenance.md); wire schemas, limits vocabulary and error taxonomy adopted; lockstep suite apps/portal/tests/team-contract.test.ts",
     },
     G1_real_clients: {
-      status: "PARTIAL — web leg verified (P2 real Keycloak login, P7 full browser drive)",
-      pending: "desktop/CLI/MCP legs require the main repo's D10 built client binaries",
+      status: "MOSTLY CLOSED — web leg verified (P2 real Keycloak login, P7 browser drive); client-library leg verified (G2/G3 below)",
+      pending: "desktop-app and MCP-server end-to-end legs are the main repo's integration work",
     },
     G2_full_roundtrip: {
-      status: "PENDING",
-      reason: "requires a real built client consuming the API end-to-end; portal-side handler/HTTP suites are not a substitute",
+      status: "CLOSED (client-library leg)",
+      evidence:
+        "the real @promptbranch/team-client drove a live portal over HTTP end-to-end: info, workspace, catalogue reads, agent proposal submit, distinct-reviewer approval, feed and bootstrap (apps/portal/tests/team-real-client.test.ts)",
     },
     G3_fault_scenarios: {
-      status: "PENDING",
-      reason: "forced response loss / duplicate delivery must be exercised through real client binaries",
+      status: "CLOSED (client-library leg)",
+      evidence:
+        "dropped command response replayed from the stored receipt with exactly one mutation; duplicate delivery idempotent; revoked agent credential fails closed",
     },
     G4_pilot_operated: {
       status: "READY-CANDIDATE",
@@ -97,7 +101,11 @@ const receipt = {
       reason: "two-week pilot with invited teams precedes wider availability",
     },
   },
-  integrationLegsFromMainRepo: ["D0 contract artifact", "D3 sync consumer fixtures", "D10 built CLI/MCP binaries"],
+  integrationLegsFromMainRepo: [
+    "D0 contract artifact — DELIVERED (vendored; provenance recorded)",
+    "D3 sync consumer fixtures — DELIVERED (conformance suite runs them)",
+    "D10 built clients — client library delivered; desktop-app/MCP-server E2E remains main-repo integration work",
+  ],
 };
 
 if (asJson) {

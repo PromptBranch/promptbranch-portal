@@ -8,12 +8,16 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "test": "vitest run --project unit && vitest run --project http-suites",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:unit": "vitest run --project unit",
+    "test:http": "vitest run --project http-suites"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@promptbranch/share": "workspace:*",
+    "@promptbranch/team-client": "workspace:*",
+    "@promptbranch/team-contract": "workspace:*",
     "@promptbranch/team-server": "workspace:*",
     "@shikijs/rehype": "^4.4.3",
     "better-sqlite3": "13.0.3",

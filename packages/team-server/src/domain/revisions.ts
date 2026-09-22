@@ -78,15 +78,20 @@ interface RevisionRow {
   created_at: Date;
   author_user_id: string | null;
   author_agent_id: string | null;
+  agent_owner_user_id: string | null;
+  agent_owner_name: string | null;
   author_name: string | null;
 }
 
-const REVISION_SELECT = `
+export const REVISION_SELECT = `
   SELECT r.id, r.workspace_id, r.prompt_id, r.parent_revision_id, r.content, r.content_hash,
          r.change_note, r.created_at, r.author_user_id, r.author_agent_id,
-         CASE WHEN r.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name
+         u.display_name AS author_name,
+         t.owner_user_id AS agent_owner_user_id, owner.display_name AS agent_owner_name
     FROM team_revisions r
-    LEFT JOIN team_users u ON u.id = r.author_user_id`;
+    LEFT JOIN team_users u ON u.id = r.author_user_id
+    LEFT JOIN team_agent_tokens t ON t.id = r.author_agent_id
+    LEFT JOIN team_users owner ON owner.id = t.owner_user_id`;
 
 export function toRevisionDto(row: RevisionRow): RevisionDto {
   return {
@@ -99,8 +104,8 @@ export function toRevisionDto(row: RevisionRow): RevisionDto {
     contentHash: row.content_hash,
     changeNote: row.change_note,
     author: {
-      userId: row.author_user_id ?? "",
-      displayName: row.author_name ?? "Former member",
+      userId: row.author_user_id ?? row.agent_owner_user_id ?? "",
+      displayName: row.author_name ?? row.agent_owner_name ?? "Former member",
       agentTokenId: row.author_agent_id,
     },
     createdAt: row.created_at.toISOString(),
@@ -137,5 +142,4 @@ export async function loadPublishedRevision(
   return row;
 }
 
-export { REVISION_SELECT };
 export type { RevisionRow };

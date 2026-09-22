@@ -20,7 +20,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ w: 
     if (!service) throw new Error("disabled");
     const auth = await authenticateRequest(service, request);
     const { w } = await context.params;
-    await requireMemberRole(service, auth, w, "contributor");
+    // Agents pass at the contributor floor scoped to their OWN proposals
+    // (C4) — listProposals applies the author filter from `viewer`.
+    await requireMemberRole(service, auth, w, "contributor", { agentOwnScoped: true });
     const search = new URL(request.url).searchParams;
     const status = search.get("status");
     const result = await listProposals(service.pool, w, {

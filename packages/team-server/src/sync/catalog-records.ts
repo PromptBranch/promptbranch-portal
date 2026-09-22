@@ -55,14 +55,16 @@ const REVISION_RECORD = (workspaceParam: number, idParam: number) => `
     'contentHash', r.content_hash,
     'changeNote', r.change_note,
     'author', jsonb_build_object(
-      'userId', COALESCE(r.author_user_id::text, ''),
-      'displayName', CASE WHEN r.author_user_id IS NOT NULL THEN COALESCE(u.display_name, 'Former member') ELSE 'Agent' END,
+      'userId', COALESCE(r.author_user_id::text, t.owner_user_id::text, ''),
+      'displayName', COALESCE(u.display_name, owner.display_name, 'Former member'),
       'agentTokenId', r.author_agent_id
     ),
     'createdAt', ${ISO("r.created_at")}
   ))
   FROM team_revisions r
   LEFT JOIN team_users u ON u.id = r.author_user_id
+  LEFT JOIN team_agent_tokens t ON t.id = r.author_agent_id
+  LEFT JOIN team_users owner ON owner.id = t.owner_user_id
   WHERE r.workspace_id = $${workspaceParam} AND r.id = $${idParam}`;
 
 const ORG_RECORD = (table: "team_tags" | "team_collections", entity: "tag" | "collection", workspaceParam: number, idParam: number) => `
@@ -120,14 +122,16 @@ export const CATALOGUE_UNION = `
         'parentRevisionId', r.parent_revision_id, 'content', r.content, 'contentFormat', 'markdown',
         'contentHash', r.content_hash, 'changeNote', r.change_note,
         'author', jsonb_build_object(
-          'userId', COALESCE(r.author_user_id::text, ''),
-          'displayName', CASE WHEN r.author_user_id IS NOT NULL THEN COALESCE(u.display_name, 'Former member') ELSE 'Agent' END,
+          'userId', COALESCE(r.author_user_id::text, t.owner_user_id::text, ''),
+          'displayName', COALESCE(u.display_name, owner.display_name, 'Former member'),
           'agentTokenId', r.author_agent_id),
         'createdAt', ${ISO("r.created_at")}
       ))
       FROM team_revisions r
       JOIN team_publications pub ON pub.workspace_id = r.workspace_id AND pub.revision_id = r.id
       LEFT JOIN team_users u ON u.id = r.author_user_id
+      LEFT JOIN team_agent_tokens t ON t.id = r.author_agent_id
+      LEFT JOIN team_users owner ON owner.id = t.owner_user_id
       WHERE r.workspace_id = $1
     UNION ALL
     SELECT 'c-tag', x.id, jsonb_build_object('entity', 'tag', 'value', jsonb_build_object(

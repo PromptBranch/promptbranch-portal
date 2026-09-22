@@ -2,7 +2,7 @@ import type { Pool, PoolClient } from "../db.js";
 import { teamError } from "../errors.js";
 import type { Principal } from "../auth/principal.js";
 import { appendAudit } from "./audit.js";
-import { insertRevision, loadPublishedRevision, toRevisionDto, type RevisionDto } from "./revisions.js";
+import { insertRevision, loadPublishedRevision, toRevisionDto, REVISION_SELECT, type RevisionDto } from "./revisions.js";
 import { refreshPromptSearch } from "./prompts.js";
 import { scanTeamContent } from "../content/scan.js";
 
@@ -343,15 +343,19 @@ interface ProposalReadRow {
   author_user_id: string | null;
   author_agent_id: string | null;
   author_name: string | null;
+  agent_owner_user_id: string | null;
+  agent_owner_name: string | null;
 }
 
 const PROPOSAL_SELECT = `
   SELECT pr.id, pr.prompt_id, pr.base_revision_id, pr.candidate_revision_id, pr.rationale, pr.status,
          pr.supersedes_id, pr.entity_version, pr.created_at, pr.updated_at,
          pr.author_user_id, pr.author_agent_id,
-         CASE WHEN pr.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name
+         u.display_name AS author_name, t.owner_user_id AS agent_owner_user_id, owner.display_name AS agent_owner_name
     FROM team_proposals pr
-    LEFT JOIN team_users u ON u.id = pr.author_user_id`;
+    LEFT JOIN team_users u ON u.id = pr.author_user_id
+    LEFT JOIN team_agent_tokens t ON t.id = pr.author_agent_id
+    LEFT JOIN team_users owner ON owner.id = t.owner_user_id`;
 
 function toProposalDto(row: ProposalReadRow, workspaceId: string): ProposalDto {
   return {
@@ -362,8 +366,8 @@ function toProposalDto(row: ProposalReadRow, workspaceId: string): ProposalDto {
     candidateRevisionId: row.candidate_revision_id,
     rationale: row.rationale,
     author: {
-      userId: row.author_user_id ?? "",
-      displayName: row.author_name ?? "Former member",
+      userId: row.author_user_id ?? row.agent_owner_user_id ?? "",
+      displayName: row.author_name ?? row.agent_owner_name ?? "Former member",
       agentTokenId: row.author_agent_id,
     },
     status: row.status,
@@ -432,8 +436,8 @@ export async function getProposalDetail(pool: Pool, workspaceId: string, proposa
     const proposal = (await client.query<ProposalReadRow>(`${PROPOSAL_SELECT} WHERE pr.workspace_id = $1 AND pr.id = $2`, [workspaceId, proposalId])).rows[0];
     if (!proposal) throw teamError("NOT_FOUND", "Proposal not found");
     const [base, candidate, reviews] = await Promise.all([
-      client.query(`${"SELECT r.id, r.workspace_id, r.prompt_id, r.parent_revision_id, r.content, r.content_hash, r.change_note, r.created_at, r.author_user_id, r.author_agent_id, CASE WHEN r.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name FROM team_revisions r LEFT JOIN team_users u ON u.id = r.author_user_id"} WHERE r.workspace_id = $1 AND r.id = $2`, [workspaceId, proposal.base_revision_id]),
-      client.query(`${"SELECT r.id, r.workspace_id, r.prompt_id, r.parent_revision_id, r.content, r.content_hash, r.change_note, r.created_at, r.author_user_id, r.author_agent_id, CASE WHEN r.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name FROM team_revisions r LEFT JOIN team_users u ON u.id = r.author_user_id"} WHERE r.workspace_id = $1 AND r.id = $2`, [workspaceId, proposal.candidate_revision_id]),
+      client.query(`${REVISION_SELECT} WHERE r.workspace_id = $1 AND r.id = $2`, [workspaceId, proposal.base_revision_id]),
+      client.query(`${REVISION_SELECT} WHERE r.workspace_id = $1 AND r.id = $2`, [workspaceId, proposal.candidate_revision_id]),
       client.query(`
         SELECT v.id, v.proposal_id, v.candidate_revision_id, v.candidate_hash, v.decision, v.comment, v.created_at,
                v.reviewer_user_id, u.display_name AS reviewer_name
@@ -512,16 +516,18 @@ export async function listComments(
 ): Promise<Array<{ id: string; proposalId: string; body: string; author: { userId: string; displayName: string; agentTokenId: string | null }; createdAt: string }>> {
   const result = await pool.query(`
     SELECT c.id, c.proposal_id, c.body, c.created_at, c.author_user_id, c.author_agent_id,
-           CASE WHEN c.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name
+           u.display_name AS author_name, t.owner_user_id AS agent_owner_user_id, owner.display_name AS agent_owner_name
       FROM team_comments c
       LEFT JOIN team_users u ON u.id = c.author_user_id
+      LEFT JOIN team_agent_tokens t ON t.id = c.author_agent_id
+      LEFT JOIN team_users owner ON owner.id = t.owner_user_id
      WHERE c.workspace_id = $1 AND c.proposal_id = $2
      ORDER BY c.created_at`, [workspaceId, proposalId]);
-  return result.rows.map((row: { id: string; proposal_id: string; body: string; created_at: Date; author_user_id: string | null; author_agent_id: string | null; author_name: string | null }) => ({
+  return result.rows.map((row: { id: string; proposal_id: string; body: string; created_at: Date; author_user_id: string | null; author_agent_id: string | null; author_name: string | null; agent_owner_user_id: string | null; agent_owner_name: string | null }) => ({
     id: row.id,
     proposalId: row.proposal_id,
     body: row.body,
-    author: { userId: row.author_user_id ?? "", displayName: row.author_name ?? "Former member", agentTokenId: row.author_agent_id },
+    author: { userId: row.author_user_id ?? row.agent_owner_user_id ?? "", displayName: row.author_name ?? row.agent_owner_name ?? "Former member", agentTokenId: row.author_agent_id },
     createdAt: row.created_at.toISOString(),
   }));
 }

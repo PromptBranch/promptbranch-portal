@@ -253,8 +253,12 @@ interface RouteContext {
 
 interface ReadRoute {
   name: string;
-  /** Minimum human role; "member" = any current member; "sync" = feed/bootstrap surfaces. */
-  floor: "viewer" | "contributor" | "owner" | "member" | "sync";
+  /**
+   * Minimum human role; "member" = any current member; "sync" = feed/bootstrap
+   * surfaces; "contributor-agent-own" = contributor floor where agents pass
+   * scoped to their own submissions (C4 proposal surface).
+   */
+  floor: "viewer" | "contributor" | "contributor-agent-own" | "owner" | "member" | "sync";
   call: (bearer: string, ctx: RouteContext) => Promise<Response>;
 }
 
@@ -278,7 +282,7 @@ function readRoutes(): ReadRoute[] {
     },
     { name: "tags", floor: "viewer", call: (b, c) => tagsRoute(request(`workspaces/${c.w1}/tags`, { bearer: b }), paramsW(c.w1)) },
     { name: "collections", floor: "viewer", call: (b, c) => collectionsRoute(request(`workspaces/${c.w1}/collections`, { bearer: b }), paramsW(c.w1)) },
-    { name: "proposals", floor: "contributor", call: (b, c) => proposalsRoute(request(`workspaces/${c.w1}/proposals`, { bearer: b }), paramsW(c.w1)) },
+    { name: "proposals", floor: "contributor-agent-own", call: (b, c) => proposalsRoute(request(`workspaces/${c.w1}/proposals`, { bearer: b }), paramsW(c.w1)) },
     {
       name: "activity items",
       floor: "contributor",
@@ -339,6 +343,10 @@ function allowed(principal: Principal, route: ReadRoute): boolean {
     case "member":
       // Workspace detail is human-only (agents list their single workspace).
       return principal.role !== "agent";
+    case "contributor-agent-own":
+      // Humans need the contributor role; agents pass scoped to their own
+      // proposals (C4) — viewers of either kind stay out.
+      return principal.role === "agent" || principal.rank >= ROLE_RANK.contributor!;
     case "contributor":
     case "owner":
       return principal.role !== "agent" && principal.rank >= ROLE_RANK[route.floor]!;
@@ -459,7 +467,7 @@ describe("command negatives", () => {
         body: {
           commandId,
           membershipGeneration: await generationOf(f.w1.id, f.alice.id),
-          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "W1 prompt", expectedEntityVersion: await promptVersion(f.w1.id, f.promptW1), description: "negatives" },
+          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "W1 prompt", description: "negatives", tagIds: [], collectionIds: [], expectedEntityVersion: await promptVersion(f.w1.id, f.promptW1) },
         },
       }),
       { params: Promise.resolve({ w: f.w1.id }) },
@@ -474,7 +482,7 @@ describe("command negatives", () => {
         body: {
           commandId,
           membershipGeneration: await generationOf(f.w2.id, f.bob.id),
-          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "stolen", expectedEntityVersion: 1 },
+          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "stolen", description: "", tagIds: [], collectionIds: [], expectedEntityVersion: 1 },
         },
       }),
       { params: Promise.resolve({ w: f.w1.id }) },
@@ -492,7 +500,7 @@ describe("command negatives", () => {
         body: {
           commandId: randomUUID(),
           membershipGeneration: await generationOf(f.w1.id, f.alice.id),
-          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "epoch", expectedEntityVersion: 1 },
+          operation: { type: "prompt.metadata", promptId: f.promptW1, title: "epoch", description: "", tagIds: [], collectionIds: [], expectedEntityVersion: 1 },
         },
       }),
       { params: Promise.resolve({ w: f.w1.id }) },

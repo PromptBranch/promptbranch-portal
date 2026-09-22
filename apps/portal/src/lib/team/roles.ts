@@ -23,6 +23,7 @@ export async function requireMemberRole(
   auth: HumanAuthContext | { kind: "agent"; userId: string; tokenId: string; scopes: string[] },
   workspaceId: string,
   minimumRole: TeamRole,
+  options: { agentOwnScoped?: boolean } = {},
 ): Promise<{ role: TeamRole; generation: string; entityVersion: number }> {
   // Read quota first (C8): 300/minute per principal per workspace, shared
   // across API reads and SSR page loads, enforced in Postgres like writes.
@@ -36,8 +37,11 @@ export async function requireMemberRole(
     // Agent reads require catalog:read plus a current membership; the
     // workspace-scoped token cannot read another workspace at all. Agents
     // never inherit the owner's authority: elevated read floors (members,
-    // invitations, audit, export) are human-only regardless of role.
-    if (minimumRole !== "viewer") {
+    // invitations, audit, export) are human-only regardless of role. The
+    // one contract exception is the proposal surface: agents see proposals
+    // at the contributor floor scoped to their OWN submissions (C4) — the
+    // caller must apply that scoping to every query it then runs.
+    if (minimumRole !== "viewer" && !(options.agentOwnScoped && minimumRole === "contributor")) {
       throw teamError("ROLE_FORBIDDEN", "This surface is restricted to human members");
     }
     if (!auth.scopes.includes("catalog:read")) {

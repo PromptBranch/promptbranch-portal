@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@promptbranch/share": "workspace:*",
+    "@promptbranch/team-contract": "workspace:*",
     "jose": "6.2.12",
     "nodemailer": "10.0.10",
     "openid-client": "6.8.8",

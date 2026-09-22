@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TEAM_LIMITS as CONTRACT_LIMITS } from "@promptbranch/team-contract";
 
 /**
  * Team-feature environment for the portal (contract C5/C10; full operator
@@ -80,15 +81,5 @@ export const TEAM_PROTOCOL_VERSION = 1;
 export const TEAM_CONTRACT_VERSION = "1.0.0";
 export const TEAM_FEATURES = ["catalog-v1", "review-v1", "changes-v1", "agent-token-v1"] as const;
 
-/** Wire-level limits from contract C2 — required keys, immutable in protocol v1. */
-export const TEAM_LIMITS = {
-  maxRequestBytes: 262_144,
-  maxResponsePageBytes: 524_288,
-  maxContentBytes: 65_536,
-  maxPageSize: 100,
-  maxMembers: 50,
-  maxPrompts: 5_000,
-  maxPublishedContentBytes: 209_715_200,
-  maxProposals: 50_000,
-  maxActiveTokensPerMember: 20,
-} as const;
+/** Wire-level limits — owned by the D0 contract artifact (G0), re-exposed. */
+export const TEAM_LIMITS = CONTRACT_LIMITS;

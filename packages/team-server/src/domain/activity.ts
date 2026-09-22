@@ -128,12 +128,16 @@ export async function listActivityItems(
     author_user_id: string | null;
     author_agent_id: string | null;
     author_name: string | null;
+    agent_owner_user_id: string | null;
+    agent_owner_name: string | null;
   }>(
     `SELECT a.id, a.prompt_id, a.revision_id, a.kind, a.body, a.run_json, a.created_at,
             a.author_user_id, a.author_agent_id,
-            CASE WHEN a.author_user_id IS NOT NULL THEN u.display_name ELSE 'Agent' END AS author_name
+            u.display_name AS author_name, t.owner_user_id AS agent_owner_user_id, owner.display_name AS agent_owner_name
        FROM team_activity_items a
        LEFT JOIN team_users u ON u.id = a.author_user_id
+       LEFT JOIN team_agent_tokens t ON t.id = a.author_agent_id
+       LEFT JOIN team_users owner ON owner.id = t.owner_user_id
       WHERE a.workspace_id = $1${promptFilter}${ownFilter}
       ORDER BY a.created_at DESC, a.id
       LIMIT $2 OFFSET $3`,
@@ -149,8 +153,8 @@ export async function listActivityItems(
     body: row.body,
     createdAt: row.created_at.toISOString(),
     author: {
-      userId: row.author_user_id ?? "",
-      displayName: row.author_name ?? "Former member",
+      userId: row.author_user_id ?? row.agent_owner_user_id ?? "",
+      displayName: row.author_name ?? row.agent_owner_name ?? "Former member",
       agentTokenId: row.author_agent_id,
     },
     run: row.run_json,
