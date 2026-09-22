@@ -53,11 +53,9 @@ jobs:
           # Host API :48026 → container 8025 (web/API); host :48025 → 1025 (SMTP).
           - 48026:8025
           - 48025:1025
-        options: >-
-          --health-cmd "wget -q -O- http://127.0.0.1:8025/api/v1/ready || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
+        # No custom healthcheck: the image ships no shell tools, and the
+        # binary listens within milliseconds of start — the install step
+        # gates the first test hit.
 
     steps:
       - name: Check out repository
