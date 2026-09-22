@@ -32,7 +32,7 @@ jobs:
 
     services:
       postgres:
-        # Same digest-pinned image as the local dev stack.
+        # Same digest-pinned images as the local dev stack.
         image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
         env:
           POSTGRES_DB: postgres
@@ -42,6 +42,19 @@ jobs:
           - 54329:5432
         options: >-
           --health-cmd "pg_isready -U team_admin"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      mailpit:
+        # The invitation-delivery test asserts against REAL capture (plan P3).
+        image: axllent/mailpit:v1.31.2@sha256:74d609a42ec279aa63c6b4622a6fa9b5408d1ad5b1d76a1c4be40a265ce0863d
+        ports:
+          # Host API :48026 → container 8025 (web/API); host :48025 → 1025 (SMTP).
+          - 48026:8025
+          - 48025:1025
+        options: >-
+          --health-cmd "wget -q -O- http://127.0.0.1:8025/api/v1/ready || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
