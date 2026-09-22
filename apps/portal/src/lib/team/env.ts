@@ -32,12 +32,24 @@ export const teamEnvSchema = z.object({
   TEAM_CURSOR_SIGNING_KEY: z.string().min(16).optional(),
   /** Test-only override: inline JWKS JSON instead of the issuer's endpoint. */
   TEAM_OIDC_JWKS_JSON: z.string().optional(),
+  /** Worker-side SMTP transport (loopback capture in development). */
+  TEAM_SMTP_URL: z.url().optional(),
+  TEAM_EMAIL_FROM: z.string().min(3).optional(),
+  /**
+   * Backup-restore recovery (P9): while "1" the portal registers NO team
+   * service — every team route answers 503 until the operator has restored,
+   * rotated the epoch, revoked pre-restore credentials and reconciled the
+   * roster (scripts/team-restore.mjs), then clears the flag.
+   */
+  TEAM_RECOVERY_MODE: z.string().optional(),
 });
 
 export type TeamEnv = z.infer<typeof teamEnvSchema>;
 
 export function teamEnabled(source: NodeJS.ProcessEnv = process.env): boolean {
-  return source.TEAM_ENABLED !== "false";
+  // Recovery mode fails closed: no usable protected service is registered
+  // until the operator finishes the restore runbook and clears the flag.
+  return source.TEAM_ENABLED !== "false" && source.TEAM_RECOVERY_MODE !== "1";
 }
 
 /** Throws a descriptive error when required team values are missing/invalid. */

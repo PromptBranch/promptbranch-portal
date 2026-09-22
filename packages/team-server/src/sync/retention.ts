@@ -12,6 +12,7 @@ export interface SweepResult {
   expiredBootstraps: number;
   prunedChanges: number;
   expiredRateBuckets: number;
+  expiredExports: number;
 }
 
 const MAX_CHANGES_PER_SWEEP = 5_000;
@@ -22,6 +23,8 @@ export async function sweepExpiredSyncState(pool: Pool): Promise<SweepResult> {
     await client.query("BEGIN");
     const bootstraps = await client.query("DELETE FROM team_bootstraps WHERE expires_at <= now()");
     const buckets = await client.query("DELETE FROM team_rate_buckets WHERE expires_at <= now()");
+    // Export rows cascade with their snapshot.
+    const exports = await client.query("DELETE FROM team_exports WHERE expires_at <= now()");
 
     const deleted = await client.query<{ workspace_id: string; seq: string }>(
       `DELETE FROM team_changes
@@ -58,6 +61,7 @@ export async function sweepExpiredSyncState(pool: Pool): Promise<SweepResult> {
       expiredBootstraps: bootstraps.rowCount ?? 0,
       prunedChanges: deleted.rowCount ?? 0,
       expiredRateBuckets: buckets.rowCount ?? 0,
+      expiredExports: exports.rowCount ?? 0,
     };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);

@@ -452,6 +452,10 @@ export async function createTeamTestHarness(
       closed = true;
       await raw.end().catch(() => undefined);
       await pool.end().catch(() => undefined);
+      // Sockets pg already removed from the pool can still be mid-close;
+      // let them finish before the FORCE drop, or the terminations surface
+      // as unhandled errors under parallel suite load.
+      await new Promise((resolve) => setTimeout(resolve, 100));
       await adminPool.query(`DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`).catch(() => undefined);
       await adminPool.end().catch(() => undefined);
       if (migrationTempDir) {

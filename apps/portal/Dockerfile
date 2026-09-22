@@ -18,6 +18,29 @@ COPY packages/share packages/share
 COPY apps/portal apps/portal
 RUN pnpm --filter @promptbranch/portal build
 
+# --- Team services (P9): worker, migrations job and backup/restore tooling.
+# The worker runs team-server's compiled jobs graph directly (no bundler),
+# so this stage builds the package and prunes its runtime dependencies.
+FROM deps AS team-build
+COPY tsconfig.base.json ./
+COPY packages/share packages/share
+COPY packages/team-server packages/team-server
+RUN pnpm --filter @promptbranch/team-server build \
+ && pnpm --filter "@promptbranch/team-server..." deploy --prod /deploy \
+ && cp -R packages/team-server/dist /deploy/dist \
+ && cp -R packages/team-server/migrations /deploy/migrations \
+ && cp -R scripts /deploy/scripts
+
+FROM node:26-alpine AS team-runtime
+# postgresql-client + openssl: pg_dump/pg_restore and stream encryption for
+# the nightly backup run inside this container.
+RUN apk add --no-cache postgresql18-client openssl
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=team-build /deploy ./
+USER node
+CMD ["node", "scripts/team-worker.mjs"]
+
 FROM node:26-alpine AS runner
 ENV NODE_ENV=production \
     PORT=3000 \

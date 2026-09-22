@@ -394,7 +394,21 @@ export class Sessions {
     }
     await this.revokeAllUserSessions(input.userId);
     await this.pool.query(
-      "UPDATE team_users SET disabled_at = now(), deleted_at = now(), updated_at = now() WHERE id = $1",
+      "UPDATE team_agent_tokens SET revoked_at = now() WHERE owner_user_id = $1 AND revoked_at IS NULL",
+      [input.userId],
+    );
+    // Anonymize identity columns: historical actor IDs stay valid in audit
+    // and revision authorship, but the person behind them is no longer
+    // identifiable. The synthesized address keeps any unique index satisfied.
+    // Revision rows never carried a denormalized name/email copy (by design),
+    // so online presentation resolves to "Former member" automatically.
+    await this.pool.query(
+      `UPDATE team_users
+          SET display_name = 'Former member',
+              verified_email = 'former+' || $1::text || '@deleted.invalid',
+              normalized_email = 'former+' || $1::text || '@deleted.invalid',
+              disabled_at = now(), deleted_at = now(), updated_at = now()
+        WHERE id = $1`,
       [input.userId],
     );
   }

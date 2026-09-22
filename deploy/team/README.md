@@ -82,3 +82,86 @@ checking official release/security support, then update both fields:
 - `postgres:18.4-alpine3.24@sha256:9a8afca5…de15`
 - `quay.io/keycloak/keycloak:26.7.4@sha256:82a77884…b2c`
 - `axllent/mailpit:v1.31.2@sha256:74d609a4…63d`
+
+## Production operations (P9)
+
+`compose.prod.yml` runs the team stack: pinned Postgres (database plane,
+no external route), the migrations job (`docker compose -f
+deploy/team/compose.prod.yml run --rm migrate` BEFORE deploying new
+images), the team-enabled portal (edge plane; your reverse proxy
+terminates TLS in front) and the job worker (edge plane for SMTP egress).
+Keycloak is **not** shipped: production requires HTTPS and a separately
+operated identity provider. All secrets come from `deploy/team/.env`,
+generated on the host — never committed:
+
+```sh
+# 32-byte session key (base64) and the optional cursor HMAC key
+openssl rand -base64 32   # TEAM_SESSION_ENCRYPTION_KEY
+openssl rand -hex 32      # TEAM_CURSOR_SIGNING_KEY (optional)
+uuidgen                   # TEAM_SERVER_ID, TEAM_SERVER_EPOCH
+head -c 32 /dev/urandom > /secure/team-backup.key   # backup key file
+```
+
+Disabled (`TEAM_ENABLED=false`) or recovering (`TEAM_RECOVERY_MODE=1`)
+the portal registers **no** usable team service — every team route 503s.
+
+### Backups
+
+Nightly (cron/systemd timer) and **before every migration**:
+
+```sh
+docker compose -f deploy/team/compose.prod.yml run --rm --rm \
+  -v /secure/team-backup.key:/secure/team-backup.key:ro \
+  -v /var/backups/team:/var/backups/team worker \
+  node scripts/team-backup.mjs --out=/var/backups/team --sqlite=/data/portal.db
+```
+
+`pg_dump --format=custom` piped through `openssl enc -aes-256-cbc`
+(plaintext never lands on disk), sha256 sidecar, 30-day retention, and a
+consistent SQLite snapshot of the anonymous portal store via the
+documented online-backup statement. Realm config and encryption keys are
+backed up through your separate protected channel (they are NOT in the
+database dump). Alerts: backup age > 26h.
+
+### Restore and recovery
+
+1. Bring the portal up with `TEAM_RECOVERY_MODE=1` (all team traffic 503s;
+   readiness reports `recovery`).
+2. `pnpm team:restore -- --dump=/var/backups/team/team-<ts>.dump.enc
+   --key-file=/secure/team-backup.key --restored-from="team-<ts>"`
+   — restores, then rotates every server epoch, revokes all app sessions
+   and agent tokens, wipes materialized bootstraps, moves every feed
+   retention floor to head (old cursors expire) and cancels queued jobs.
+3. Verify the current roster, then close the window:
+   `pnpm team:restore -- --finish-recovery=roster.json`
+   (`{"emails": [...]}`). Memberships not confirmed by the roster are
+   removed — a stale backup cannot revive removed users; sole-owner
+   workspaces are protected and reported for manual resolution instead.
+4. Clear `TEAM_RECOVERY_MODE`, restart the portal. Pre-restore tokens now
+   authenticate 401; clients re-bootstrap at the rotated epoch.
+
+Pilot targets: RPO ≤ 24h, RTO ≤ 4h — validate with a restore drill on a
+scratch host using a deliberately stale backup.
+
+### Metrics and alerts
+
+The worker logs numeric-only gauges each tick (queue pending/running/
+failed, oldest-due-job lag) and the portal exposes
+`/api/team/v1/health/ready` (`ok` / `degraded` / `recovery` /
+`disabled`) — never prompt bodies or internal addresses. Ship the logs to
+your pipeline and alert on: backup age > 26h, failed migration,
+persistent auth or database failure (health `degraded` > 5m), any job
+`failed`, queue lag > 5m, disk > 80%. Latency/error-rate percentiles ride
+on the reverse-proxy access logs.
+
+### Exports
+
+Workspace owners can request a portability export (`POST
+/api/team/v1/workspaces/:w/export`, ≤ 3/hour/workspace): an NDJSON stream
+with a manifest (schema version, record counts, feed high-water) where
+every record carries the sha256 of its canonical JSON — verify with
+`verifyExportRecord` from `@promptbranch/team-server`. Export is a
+portability format, **not** a live restore/import API. Exports contain
+domain content only (prompts, revisions, publications, tags, collections,
+proposals, reviews, comments) — never sessions, token hashes, invitation
+secrets, receipts or rate-bucket internals — and expire after 10 minutes.

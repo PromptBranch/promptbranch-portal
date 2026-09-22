@@ -2,6 +2,87 @@
 
 Branch `feature/teams-portal`. Baseline `89665ff` (reviewed baseline, clean).
 
+## Record: 2026-09-22, P9 complete
+
+Commits:
+
+- `feat(ops): add team lifecycle and recovery controls` (P9)
+
+Scope delivered:
+
+- **Deletion lifecycle** (`domain/purge.ts`): due-scan purge of soft-deleted
+  workspaces' content 30 days after deletion (child-before-parent FK order,
+  prompt heads nulled first), 90-day audit retention, tombstone reclamation
+  only after all of its audit ages out. Idempotent; runs on every worker
+  tick alongside the retention sweep. Purge is a due-scan rather than an
+  enqueued per-workspace job — same guarantees, simpler restart semantics
+  (deviation recorded below).
+- **Account deletion**: revokes the user's agent tokens and anonymizes
+  identity (`Former member` / `former+<id>@deleted.invalid`) while actor
+  ids stay valid for audit; revision rows never carried denormalized
+  name/email copies by design.
+- **Owner export** (`domain/export.ts` + `POST /workspaces/:w/export`,
+  `GET .../export/:id`): NDJSON portability snapshot materialized under the
+  workspace lock in repeatable read (bootstrap pattern), manifest with
+  schema version/counts/high-water, per-record sha256 over canonical jsonb
+  text (JS-side verifier reproduces PG key ordering and separators), bounded
+  100-record pages rechecking ownership EVERY page, 3/hour/workspace quota
+  (shared PG buckets), one active export per owner, 10-minute expiry
+  (retention sweep purges). Domain content only — sessions, token hashes,
+  invitation secrets, receipts and rate buckets never enter a stream.
+  Agents are excluded (human owner only).
+- **Recovery** (`domain/recovery.ts` + env gate): `TEAM_RECOVERY_MODE=1`
+  registers no team service (every route 503; health reports `recovery`).
+  `enterRecovery` (scripts/team-restore.mjs): rotates every server epoch,
+  revokes all app sessions + agent tokens, wipes bootstraps, moves feed
+  retention floors to head (old cursors CURSOR_EXPIRED), cancels queued
+  jobs, records provenance in `team_recovery_log`.
+  `finishRecoveryWithRoster`: removes memberships the verified roster does
+  not confirm; sole-owner workspaces are protected and reported for manual
+  resolution. Verified end-to-end: pre-restore token 503 during recovery,
+  401/410 after the window closes.
+- **Ops surface**: `/api/team/v1/health/ready` (minimal state:
+  ok/degraded/recovery/disabled), numeric-only metrics registry + queue
+  gauges logged by the worker (no prompt bodies by construction), env
+  additions (TEAM_SMTP_URL, TEAM_EMAIL_FROM, TEAM_RECOVERY_MODE — fail
+  closed).
+- **Scripts**: `team:backup` (pg_dump -Fc | openssl aes-256 stream
+  encryption, sha256 sidecar, 30-day retention, optional consistent SQLite
+  snapshot), `team:restore` (restore → enterRecovery → roster finish; exit
+  code 2 while protected workspaces need manual resolution). Fixed the P7
+  gap: `team-worker.mjs` now imports the narrow `dist/jobs/worker.js`
+  graph, which has no `@promptbranch/share` dependency — the worker runs
+  the built dist as-is (verified live).
+- **Deploy**: `team-runtime` Dockerfile stage (pnpm deploy-pruned, plus
+  postgresql-client + openssl for in-container backups);
+  `deploy/team/compose.prod.yml`: digest-pinned Postgres on an internal-only
+  network, explicit `migrate` job, hardened portal (unchanged runner stage,
+  team env, SQLite volume kept separate) and worker on the edge plane for
+  IdP/SMTP egress; operator runbook (backups, restore/recovery, alerts,
+  exports) appended to `deploy/team/README.md`. Compose config validated.
+- Migration `005-team-exports-recovery.sql` (team_exports, rows cascade,
+  team_recovery_log); migration-chain tests updated for the new file.
+
+Gates: typecheck ×3, full suite — share 64, team-server 104 (+6 lifecycle,
+stable ×2), portal 226 (+4 ops) — recursive build, `git diff --check`,
+worker live smoke, compose config — all green.
+
+Decisions / deviations:
+
+1. Purge runs as a due-scan on the worker tick (like retention), not via
+   enqueued `workspace.purge` jobs — idempotent re-selection replaces lease
+   semantics; the job-type union keeps the names reserved.
+2. Per-request latency/error-rate percentiles ride on the reverse-proxy
+   access logs (documented); the in-process registry covers queue/worker
+   gauges. Full metrics plumbing is pilot infrastructure (P10).
+3. Keycloak is not shipped in the prod overlay: production requires HTTPS
+   and a separately operated IdP (contract C5 note).
+4. The benchmark script (`team-benchmark.mjs`) and the CI lane with a real
+   synthetic IdP are P10 scope (plan lists them there).
+5. Export verification: JS reproduces jsonb canonical text (length-then-
+   bytewise key order, `": "`/`", "` separators) — validated against real
+   PG output in the lifecycle suite.
+
 ## Record: 2026-09-21, P8 complete
 
 Commits:

@@ -15,6 +15,8 @@
     "team:keycloak:init": "node scripts/team-keycloak-init.mjs",
     "team:migrate": "pnpm --filter @promptbranch/team-server build && node scripts/team-migrate.mjs",
     "team:worker": "pnpm --filter @promptbranch/team-server build && node scripts/team-worker.mjs",
+    "team:backup": "pnpm --filter @promptbranch/team-server build >/dev/null && node scripts/team-backup.mjs",
+    "team:restore": "pnpm --filter @promptbranch/team-server build >/dev/null && node scripts/team-restore.mjs",
     "team:fixtures": "node scripts/team-fixtures.mjs",
     "test:team": "node scripts/team-test.mjs"
   },

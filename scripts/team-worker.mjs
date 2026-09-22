@@ -37,9 +37,15 @@ if (!smtpLoopback && process.env.TEAM_ALLOW_REMOTE_SMTP !== "1") {
   process.exit(1);
 }
 
-const { SecretBox, createTeamPool, runDueJobs } = await import(
-  `file://${join(repoRoot, "packages", "team-server", "dist", "index.js")}`
-);
+// Imports the narrow jobs modules directly (not dist/index.js): the full
+// index re-exports the share-scanner, whose package exports point at
+// TypeScript source Node cannot execute. The jobs graph has no
+// @promptbranch/share import. Requires
+// `pnpm --filter @promptbranch/team-server build` to have run.
+const dist = (module) => `file://${join(repoRoot, "packages", "team-server", "dist", module)}`;
+const { runDueJobs } = await import(dist("jobs/worker.js"));
+const { SecretBox } = await import(dist("auth/crypto.js"));
+const { createTeamPool } = await import(dist("db.js"));
 
 const pool = createTeamPool(databaseUrl, { applicationName: "promptbranch-team-worker", max: 2 });
 const secretBox = SecretBox.fromBase64(encryptionKey);

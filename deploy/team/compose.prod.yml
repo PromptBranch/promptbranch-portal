@@ -1,0 +1,172 @@
+# P9 production overlay for team workspaces. The hardened anonymous-portal
+# base lives in deploy/portal/compose.yml; this stack adds the team database,
+# the migrations job, the job worker and the team-enabled portal. Keycloak is
+# deliberately NOT shipped here: production requires HTTPS and a separately
+# operated identity provider (see deploy/team/README.md).
+
+name: promptbranch-team
+
+services:
+  postgres:
+    image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${TEAM_POSTGRES_SUPERUSER:-team_admin}
+      POSTGRES_PASSWORD: ${TEAM_POSTGRES_SUPERUSER_PASSWORD:?set in deploy/team/.env}
+      # Loopback-only by default; the app connects over the private network.
+    volumes:
+      - team-postgres:/var/lib/postgresql
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - team-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEAM_POSTGRES_SUPERUSER:-team_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  # Forward-only migrations as an explicit job: upgrades run
+  # `docker compose run --rm migrate` BEFORE the new portal/worker images.
+  migrate:
+    build:
+      context: ../..
+      dockerfile: apps/portal/Dockerfile
+      target: team-runtime
+    image: promptbranch-team:${TEAM_IMAGE_TAG:-0.1.0}
+    command: ["node", "scripts/team-migrate.mjs"]
+    environment:
+      TEAM_DATABASE_URL: ${TEAM_MIGRATE_DATABASE_URL:?set in deploy/team/.env}
+    networks:
+      - team-internal
+    restart: "no"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  portal:
+    build:
+      context: ../..
+      dockerfile: apps/portal/Dockerfile
+      target: runner
+    image: promptbranch-portal:${PORTAL_IMAGE_TAG:-0.1.0}
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set in deploy/team/.env}
+      DATA_DIR: /data
+      TEAM_ENABLED: "true"
+      TEAM_DATABASE_URL: ${TEAM_APP_DATABASE_URL:?set in deploy/team/.env}
+      TEAM_SESSION_ENCRYPTION_KEY: ${TEAM_SESSION_ENCRYPTION_KEY:?generate outside the repo}
+      TEAM_OIDC_ISSUER: ${TEAM_OIDC_ISSUER:?production IdP issuer}
+      TEAM_OIDC_AUDIENCE: ${TEAM_OIDC_AUDIENCE:-promptbranch-team-api}
+      TEAM_WEB_CLIENT_ID: ${TEAM_WEB_CLIENT_ID:-promptbranch-web}
+      TEAM_WEB_CLIENT_SECRET: ${TEAM_WEB_CLIENT_SECRET:?set in deploy/team/.env}
+      TEAM_NATIVE_CLIENT_ID: ${TEAM_NATIVE_CLIENT_ID:-promptbranch-desktop}
+      TEAM_CLI_CLIENT_ID: ${TEAM_CLI_CLIENT_ID:-promptbranch-cli}
+      TEAM_PUBLIC_ORIGIN: ${TEAM_PUBLIC_ORIGIN:?set in deploy/team/.env}
+      TEAM_SERVER_ID: ${TEAM_SERVER_ID:?uuid}
+      TEAM_SERVER_EPOCH: ${TEAM_SERVER_EPOCH:?uuid}
+      TEAM_CURSOR_SIGNING_KEY: ${TEAM_CURSOR_SIGNING_KEY:-}
+      TEAM_RECOVERY_MODE: ${TEAM_RECOVERY_MODE:-0}
+    expose:
+      - "3000"
+    volumes:
+      # SQLite snapshot store stays on its own volume, independent of the
+      # team Postgres volume above.
+      - portal-data:/data
+    networks:
+      - team-internal
+      # Non-internal: the reverse-proxy edge terminates here and the portal
+      # must reach the production IdP (discovery, JWKS, token exchange).
+      - edge
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+      - /app/apps/portal/.next/cache:rw,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/team/v1/health/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/portal/Dockerfile
+      target: team-runtime
+    image: promptbranch-team:${TEAM_IMAGE_TAG:-0.1.0}
+    command: ["node", "scripts/team-worker.mjs"]
+    environment:
+      TEAM_DATABASE_URL: ${TEAM_APP_DATABASE_URL:?set in deploy/team/.env}
+      TEAM_SESSION_ENCRYPTION_KEY: ${TEAM_SESSION_ENCRYPTION_KEY:?generate outside the repo}
+      TEAM_SMTP_URL: ${TEAM_SMTP_URL:?set in deploy/team/.env}
+      TEAM_EMAIL_FROM: ${TEAM_EMAIL_FROM:?set in deploy/team/.env}
+      TEAM_WORKER_POLL_MS: ${TEAM_WORKER_POLL_MS:-5000}
+      TEAM_ALLOW_REMOTE_SMTP: ${TEAM_ALLOW_REMOTE_SMTP:-0}
+    networks:
+      - team-internal
+      # SMTP egress for invitation delivery (loopback capture in dev).
+      - edge
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "5"
+
+networks:
+  # Database plane: no route to the outside.
+  team-internal:
+    internal: true
+  # Edge plane: reverse proxy ingress and operator-approved egress (IdP, SMTP).
+  edge:
+
+volumes:
+  team-postgres:
+  portal-data:
