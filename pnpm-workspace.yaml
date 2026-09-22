@@ -6,6 +6,9 @@ allowBuilds:
   esbuild: true
   sharp: false
 overrides:
+  # chevrotain 11.1.2 pins lodash-es 4.17.23; keep Mermaid's parser tree on
+  # the patched release until it updates that exact transitive dependency.
+  lodash-es: 4.18.1
   # next hard-pins postcss 8.4.31, which is under active advisories; force the
   # same safe minor already used by @tailwindcss/postcss and vite.
   postcss: 8.5.26
