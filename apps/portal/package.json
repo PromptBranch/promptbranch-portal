@@ -10,7 +10,7 @@
     "embed:build": "vite build --config embed.vite.config.ts",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "next typegen && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
