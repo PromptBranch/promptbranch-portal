@@ -7,7 +7,13 @@ import { ViewToggle } from "@/components/view-toggle";
  * the server (page.tsx) and injected here; the client-side ViewToggle only
  * flips which pane is visible.
  */
-export function CodeBox(props: { contentHtml: string; sourceHtml: string; markdown: string; className?: string }) {
+export function CodeBox(props: {
+  title?: string;
+  contentHtml: string;
+  sourceHtml: string;
+  markdown: string;
+  className?: string;
+}) {
   return (
     <section
       className={`code-box ${props.className ?? ""}`}
@@ -18,7 +24,9 @@ export function CodeBox(props: { contentHtml: string; sourceHtml: string; markdo
         <span className="code-box-dots" aria-hidden>
           <i /> <i /> <i />
         </span>
-        <span className="code-box-title">prompt.md</span>
+        <span className="code-box-title" title={props.title ?? "prompt.md"}>
+          {props.title ?? "prompt.md"}
+        </span>
         <div className="flex items-center gap-1.5">
           <ViewToggle />
           <CopyButton label="Copy" text={props.markdown} />

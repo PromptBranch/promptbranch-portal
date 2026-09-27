@@ -105,14 +105,15 @@ function renderPrompt(
   const frame = element(document, "article", "code-box pb-embed-window");
   frame.dataset.view = "rendered";
   frame.dataset.pbEmbedWindow = "";
-  frame.setAttribute("aria-label", "Shared prompt");
+  frame.setAttribute("aria-label", `Shared prompt: ${prompt.title}`);
 
   const bar = element(document, "header", "code-box-bar pb-embed-bar");
   const dots = element(document, "span", "code-box-dots");
   dots.setAttribute("aria-hidden", "true");
   dots.append(element(document, "i"), element(document, "i"), element(document, "i"));
   const title = element(document, "span", "code-box-title");
-  title.textContent = "prompt.md";
+  title.textContent = prompt.title;
+  title.title = prompt.title;
 
   const controls = element(document, "div", "pb-embed-controls");
   const renderedButton = element(document, "button", "pb-embed-control");
@@ -159,26 +160,41 @@ function renderPrompt(
   frame.append(bar, renderedPane, sourcePane);
 
   const footer = element(document, "footer", "pb-embed-footer");
-  const titleLabel = element(document, "strong", "pb-embed-prompt-title");
-  titleLabel.textContent = prompt.title;
-  footer.append(titleLabel);
+  const details = element(document, "div", "pb-embed-details");
   if (prompt.description) {
     const description = element(document, "span", "pb-embed-description");
     description.dataset.promptDescription = "";
     description.textContent = prompt.description;
-    footer.append(description);
+    details.append(description);
   }
   if (prompt.tags.length > 0) {
     const tags = element(document, "span", "pb-embed-tags");
     tags.textContent = prompt.tags.join(" · ");
-    footer.append(tags);
+    details.append(tags);
   }
-  const links = element(document, "span", "pb-embed-links");
-  const openLink = element(document, "a", "pb-embed-link");
+  if (details.childNodes.length > 0) footer.append(details);
+  const links = element(document, "nav", "pb-embed-actions");
+  links.setAttribute("aria-label", "Prompt actions");
+  const openLink = element(document, "a", "pb-embed-link pb-embed-open-link");
   openLink.href = `promptbranch://import?url=${encodeURIComponent(pageUrl)}`;
   openLink.dataset.openPromptbranch = "";
-  openLink.textContent = "Open in PromptBranch";
-  const fullLink = element(document, "a", "pb-embed-link");
+  const openIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  openIcon.setAttribute("viewBox", "0 0 24 24");
+  openIcon.setAttribute("width", "15");
+  openIcon.setAttribute("height", "15");
+  openIcon.setAttribute("fill", "none");
+  openIcon.setAttribute("stroke", "currentColor");
+  openIcon.setAttribute("stroke-width", "2");
+  openIcon.setAttribute("stroke-linecap", "round");
+  openIcon.setAttribute("stroke-linejoin", "round");
+  openIcon.setAttribute("aria-hidden", "true");
+  const openIconPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  openIconPath.setAttribute("d", "M7 17 17 7M7 7h10v10");
+  openIcon.append(openIconPath);
+  const openLabel = element(document, "span");
+  openLabel.textContent = "Open in PromptBranch";
+  openLink.append(openLabel, openIcon);
+  const fullLink = element(document, "a", "pb-embed-link pb-embed-secondary-link");
   fullLink.href = pageUrl;
   fullLink.dataset.viewFull = "";
   fullLink.textContent = "View full prompt";

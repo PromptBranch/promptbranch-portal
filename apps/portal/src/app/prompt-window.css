@@ -185,9 +185,20 @@
   color: var(--color-ink-dim);
   pointer-events: none;
   white-space: nowrap;
+  max-width: calc(100% - 200px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 @media (max-width: 640px) {
-  .code-box-title { display: none; }
+  .code-box-bar { gap: 8px; padding-left: 12px; }
+  .code-box-title {
+    position: static;
+    flex: 1 1 40px;
+    min-width: 0;
+    max-width: none;
+    transform: none;
+    text-align: left;
+  }
 }
 .code-box-pane { padding: 24px; }
 @media (max-width: 640px) {

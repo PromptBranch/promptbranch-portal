@@ -60,6 +60,7 @@ export function SnapshotView(props: {
         </div>
         <CodeBox
           className="mt-10"
+          title={snapshot.title}
           contentHtml={props.contentHtml}
           sourceHtml={props.sourceHtml}
           markdown={snapshot.content}
