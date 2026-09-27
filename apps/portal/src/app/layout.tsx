@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 const THEME_INIT = themeInitScript();
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  // Reading headers() makes routes dynamic; the nonce comes from middleware.
+  // Reading headers() makes routes dynamic; the nonce comes from Proxy.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     // suppressHydrationWarning: the pre-paint script mutates data-theme (and

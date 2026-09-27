@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * attributes and Tailwind's generated <style> tags require it); that is
  * the documented Next.js CSP trade-off, not an accident.
  */
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const nonce = btoa(crypto.randomUUID());
   // Dev-only: react-refresh evaluates module code with `eval`, so HMR dies
   // (and client components never hydrate) under a strict CSP. Production
