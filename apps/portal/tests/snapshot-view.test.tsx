@@ -56,6 +56,7 @@ describe("SnapshotView", () => {
       "href",
       "promptbranch://import?url=http%3A%2F%2Flocalhost%3A3000%2Fp%2FV1StGXR8_Z5jdHi6B-myT",
     );
+    expect(screen.getByRole("button", { name: "Copy embed code" })).toBeInTheDocument();
   });
 
   it("mounts the code box with both views precomputed", () => {

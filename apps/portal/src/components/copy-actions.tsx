@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowUpRight, Check, Copy } from "@phosphor-icons/react/dist/ssr";
+import { buildEmbedSnippet } from "@/lib/embed-snippet";
 
 export function CopyButton(props: { label: string; text: string }) {
   const [copied, setCopied] = useState(false);
@@ -29,6 +30,7 @@ export function CopyButton(props: { label: string; text: string }) {
 export function SnapshotActions(props: {
   importCommand: string;
   deepLink: string;
+  snapshotUrl: string;
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
@@ -41,6 +43,7 @@ export function SnapshotActions(props: {
         Open in PromptBranch
         <ArrowUpRight size={15} aria-hidden />
       </a>
+      <CopyButton label="Copy embed code" text={buildEmbedSnippet(props.snapshotUrl)} />
       {/* The promptbranch:// protocol handler ships with the desktop import
           integration (later phase); until then this link is a no-op on
           machines without the app — intentional, not a broken button. */}

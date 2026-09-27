@@ -55,6 +55,7 @@ export function SnapshotView(props: {
             className="mt-7"
             importCommand={`promptbranch import ${url}`}
             deepLink={`promptbranch://import?url=${encodeURIComponent(url)}`}
+            snapshotUrl={url}
           />
         </div>
         <CodeBox
