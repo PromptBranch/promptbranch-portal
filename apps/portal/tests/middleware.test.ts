@@ -15,7 +15,9 @@ describe("middleware security headers", () => {
   });
 
   it("emits a nonce-based strict CSP with no third-party origins", () => {
-    const csp = middleware(new NextRequest("http://localhost/")).headers.get("content-security-policy");
+    const csp = middleware(new NextRequest("http://localhost/p/V1StGXR8_Z5jdHi6B-myT")).headers.get(
+      "content-security-policy",
+    );
     expect(csp).toContain("default-src 'self'");
     expect(csp).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'/);
     expect(csp).toContain("object-src 'none'");
@@ -23,6 +25,21 @@ describe("middleware security headers", () => {
     expect(csp).not.toContain("https://");
     // vitest runs with NODE_ENV=test, so this is the production branch.
     expect(csp).not.toContain("unsafe-eval");
+  });
+
+  it("allows the PromptFrenzy badge image only on the landing page", () => {
+    const landingCsp = middleware(new NextRequest("http://localhost/")).headers.get(
+      "content-security-policy",
+    );
+    const viewerCsp = middleware(
+      new NextRequest("http://localhost/p/V1StGXR8_Z5jdHi6B-myT"),
+    ).headers.get("content-security-policy");
+
+    expect(landingCsp).toContain(
+      "img-src 'self' data: https://www.promptfrenzy.com",
+    );
+    expect(viewerCsp).toContain("img-src 'self' data:");
+    expect(viewerCsp).not.toContain("https://www.promptfrenzy.com");
   });
 
   it("adds 'unsafe-eval' to script-src in development only", () => {

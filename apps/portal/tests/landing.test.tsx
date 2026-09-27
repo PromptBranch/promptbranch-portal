@@ -6,6 +6,11 @@ import Home, { metadata } from "@/app/page";
 const REPO = "https://github.com/PromptBranch/promptbranch";
 const RELEASES = `${REPO}/releases`;
 const X_PROFILE = "https://x.com/PromptBranch";
+const PROMPT_FRENZY_DIRECTORY = "https://www.promptfrenzy.com/directory";
+const PROMPT_FRENZY_BADGE_DARK =
+  "https://www.promptfrenzy.com/badges/directory-mono-dark.svg";
+const PROMPT_FRENZY_BADGE_LIGHT =
+  "https://www.promptfrenzy.com/badges/directory-mono-light.svg";
 
 describe("landing page", () => {
   it("renders the hero with value proposition and primary CTAs", () => {
@@ -135,6 +140,54 @@ describe("landing page", () => {
     });
     expect(xLink).toHaveAttribute("href", X_PROFILE);
     expect(xLink.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("shows the crawlable PromptFrenzy directory badge below the repository prompt", () => {
+    render(<Home />);
+    const downloadSection = screen
+      .getByRole("heading", { name: "Download PromptBranch" })
+      .closest("section");
+    expect(downloadSection).toBeInTheDocument();
+
+    const watchLink = within(downloadSection as HTMLElement).getByRole("link", {
+      name: "Watch the repository",
+    });
+    const badgeLink = within(downloadSection as HTMLElement).getByRole("link", {
+      name: "Featured on PromptFrenzy AI Directory",
+    });
+
+    expect(watchLink.compareDocumentPosition(badgeLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(
+      within(screen.getByRole("contentinfo")).queryByRole("link", {
+        name: "Featured on PromptFrenzy AI Directory",
+      }),
+    ).toBeNull();
+    expect(badgeLink).toHaveAttribute("href", PROMPT_FRENZY_DIRECTORY);
+    expect(badgeLink).toHaveAttribute("target", "_blank");
+    expect(badgeLink).toHaveAttribute("rel", "noopener");
+    expect(badgeLink).toHaveAttribute("title", "Featured on PromptFrenzy AI Directory");
+
+    const badgeImages = within(badgeLink).getAllByRole("img", {
+      name: "Featured on PromptFrenzy AI Directory",
+    });
+    expect(badgeImages).toHaveLength(2);
+
+    const darkModeBadge = badgeImages.find(
+      (image) => image.getAttribute("src") === PROMPT_FRENZY_BADGE_LIGHT,
+    );
+    const lightModeBadge = badgeImages.find(
+      (image) => image.getAttribute("src") === PROMPT_FRENZY_BADGE_DARK,
+    );
+    expect(darkModeBadge).toHaveClass("theme-dark-img");
+    expect(lightModeBadge).toHaveClass("theme-light-img");
+
+    for (const badgeImage of badgeImages) {
+      expect(badgeImage).toHaveAttribute("width", "220");
+      expect(badgeImage).toHaveAttribute("height", "44");
+      expect(badgeImage).toHaveAttribute("loading", "lazy");
+    }
   });
 
   it("contains no em-dashes or en-dashes in visible copy", () => {

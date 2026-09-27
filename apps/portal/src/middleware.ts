@@ -16,11 +16,17 @@ export function middleware(request: NextRequest): NextResponse {
     process.env.NODE_ENV === "development"
       ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`
       : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`;
+  // The landing page carries one externally hosted directory badge. Keep the
+  // exception route-scoped so shared prompt pages remain fully self-contained.
+  const imageSrc =
+    request.nextUrl.pathname === "/"
+      ? "img-src 'self' data: https://www.promptfrenzy.com"
+      : "img-src 'self' data:";
   const csp = [
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    imageSrc,
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",
