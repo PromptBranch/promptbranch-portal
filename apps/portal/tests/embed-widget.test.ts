@@ -46,6 +46,18 @@ function initialize(fetcher = vi.fn().mockResolvedValue(response())) {
   };
 }
 
+function initializeAtOrigin(
+  portalOrigin: string,
+  fetcher: NonNullable<Parameters<typeof initialize>[0]>,
+) {
+  return initializeEmbeds({
+    document,
+    portalOrigin,
+    assetBaseUrl: portalOrigin,
+    fetch: fetcher as unknown as typeof fetch,
+  });
+}
+
 async function flush(): Promise<void> {
   await vi.waitFor(() => {
     const mounted = [...document.querySelectorAll<HTMLElement>("[data-promptbranch-embed]")].some((target) =>
@@ -77,7 +89,14 @@ describe("PromptBranch inline widget", () => {
   });
 
   afterEach(() => {
-    (window as Window & { __pbEmbedCleanup?: () => void }).__pbEmbedCleanup?.();
+    const installed = (window as Window & {
+      __pbEmbedCleanup?: (() => void) | Map<string, () => void>;
+    }).__pbEmbedCleanup;
+    if (installed instanceof Map) {
+      for (const cleanup of [...installed.values()]) cleanup();
+    } else {
+      installed?.();
+    }
     document.body.innerHTML = "";
     delete (window as Window & { __pbEmbedCleanup?: () => void }).__pbEmbedCleanup;
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
@@ -100,6 +119,35 @@ describe("PromptBranch inline widget", () => {
     await vi.waitFor(() => expect(later.shadowRoot?.querySelector("[data-pb-embed-window]")).not.toBeNull());
     expect(fetcher).toHaveBeenCalledTimes(3);
     cleanup();
+  });
+
+  it("initializes each portal origin once when a page uses multiple origins", async () => {
+    const otherOrigin = "https://library.example";
+    const otherUrl = `${otherOrigin}/p/${ID}`;
+    const officialHost = host();
+    const otherHost = host(otherUrl);
+    document.body.append(officialHost, otherHost);
+    const officialFetch = vi.fn().mockResolvedValue(response(EMBED));
+    const otherEmbed = { ...EMBED, url: otherUrl };
+    const otherFetch = vi.fn().mockResolvedValue(response(otherEmbed));
+
+    const officialCleanup = initializeAtOrigin(ORIGIN, officialFetch);
+    const otherCleanup = initializeAtOrigin(otherOrigin, otherFetch);
+    initializeAtOrigin(ORIGIN, officialFetch);
+    initializeAtOrigin(otherOrigin, otherFetch);
+
+    await vi.waitFor(() => {
+      expect(officialHost.dataset.pbEmbedMounted).toBe("ready");
+      expect(otherHost.dataset.pbEmbedMounted).toBe("ready");
+    });
+    expect(officialFetch).toHaveBeenCalledTimes(1);
+    expect(otherFetch).toHaveBeenCalledTimes(1);
+    expect(officialHost.shadowRoot?.querySelector("link[rel=stylesheet]")?.getAttribute("href"))
+      .toBe(`${ORIGIN}/embed.css`);
+    expect(otherHost.shadowRoot?.querySelector("link[rel=stylesheet]")?.getAttribute("href"))
+      .toBe(`${otherOrigin}/embed.css`);
+    officialCleanup();
+    otherCleanup();
   });
 
   it("rejects invalid and cross-origin share URLs before fetching", () => {
@@ -171,7 +219,37 @@ describe("PromptBranch inline widget", () => {
       `promptbranch://import?url=${encodeURIComponent(SNAPSHOT_URL)}`,
     );
     expect(root.querySelector<HTMLAnchorElement>("[data-view-full]")?.href).toBe(SNAPSHOT_URL);
+    expect(root.querySelector("[data-prompt-description]")?.textContent).toBe(EMBED.description);
     expect(root.querySelector("iframe, style")).toBeNull();
+  });
+
+  it("makes both prompt panes keyboard-scrollable and bounds long content", async () => {
+    const target = host();
+    document.body.append(target);
+    initialize();
+    await flush();
+
+    const root = target.shadowRoot!;
+    const rendered = root.querySelector<HTMLElement>("[data-pane='rendered']")!;
+    const source = root.querySelector<HTMLElement>("[data-pane='source']")!;
+    expect(rendered.classList.contains("pb-embed-scroll")).toBe(true);
+    expect(source.classList.contains("pb-embed-scroll")).toBe(true);
+    expect(rendered.getAttribute("role")).toBe("region");
+    expect(rendered.getAttribute("aria-label")).toBe("Rendered prompt content");
+    expect(rendered.tabIndex).toBe(0);
+    expect(source.getAttribute("aria-label")).toBe("Source Markdown content");
+
+    const promptWindowCss = readFileSync("src/app/prompt-window.css", "utf8");
+    const widgetCss = readFileSync("src/embed/widget.css", "utf8");
+    expect(`${promptWindowCss}\n${widgetCss}`).not.toMatch(/\b\d+(?:\.\d+)?rem\b/);
+    expect(widgetCss).toMatch(/\.pb-embed-scroll\s*\{[^}]*max-height:[^}]*overflow:[^}]*auto/s);
+  });
+
+  it("resets host-page typography and common div styling at the shadow boundary", () => {
+    const widgetCss = readFileSync("src/embed/widget.css", "utf8");
+    expect(widgetCss).toMatch(/:host\s*\{[^}]*all:\s*initial\s*!important/s);
+    expect(widgetCss).toMatch(/\.pb-embed-surface\s*\{[^}]*font-size:\s*16px/s);
+    expect(widgetCss).toMatch(/\.pb-embed-surface\s*\{[^}]*font-family:\s*var\(--font-sans\)/s);
   });
 
   it("resolves auto theme from the OS and honors explicit light/dark overrides", async () => {

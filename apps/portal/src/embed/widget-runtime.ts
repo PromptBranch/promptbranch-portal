@@ -20,6 +20,8 @@ interface EmbedRuntimeOptions {
 const EMBED_SELECTOR = "[data-promptbranch-embed]";
 const SNAPSHOT_PATH = /^\/p\/([A-Za-z0-9_-]{21})$/;
 const INSTALLED_KEY = "__pbEmbedCleanup";
+type EmbedCleanup = () => void;
+type EmbedCleanupRegistry = Map<string, EmbedCleanup>;
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -135,6 +137,10 @@ function renderPrompt(
 
   const renderedPane = element(document, "div", "code-box-pane");
   renderedPane.dataset.pane = "rendered";
+  renderedPane.classList.add("pb-embed-scroll");
+  renderedPane.setAttribute("role", "region");
+  renderedPane.setAttribute("aria-label", "Rendered prompt content");
+  renderedPane.tabIndex = 0;
   const renderedContent = element(document, "div", "md");
   // This field is produced by the portal's rehype-sanitize pipeline before
   // highlighting. Do not use innerHTML for any other response field.
@@ -143,6 +149,10 @@ function renderPrompt(
 
   const sourcePane = element(document, "div", "code-box-pane");
   sourcePane.dataset.pane = "source";
+  sourcePane.classList.add("pb-embed-scroll");
+  sourcePane.setAttribute("role", "region");
+  sourcePane.setAttribute("aria-label", "Source Markdown content");
+  sourcePane.tabIndex = 0;
   const sourceContent = element(document, "div", "source-view");
   sourceContent.innerHTML = prompt.sourceHtml;
   sourcePane.append(sourceContent);
@@ -152,6 +162,12 @@ function renderPrompt(
   const titleLabel = element(document, "strong", "pb-embed-prompt-title");
   titleLabel.textContent = prompt.title;
   footer.append(titleLabel);
+  if (prompt.description) {
+    const description = element(document, "span", "pb-embed-description");
+    description.dataset.promptDescription = "";
+    description.textContent = prompt.description;
+    footer.append(description);
+  }
   if (prompt.tags.length > 0) {
     const tags = element(document, "span", "pb-embed-tags");
     tags.textContent = prompt.tags.join(" · ");
@@ -225,6 +241,11 @@ function mountEmbed(host: HTMLElement, options: EmbedRuntimeOptions, id: string,
     if (!response.ok) throw new Error("embed unavailable");
     const body: unknown = await response.json();
     if (!isEmbedResponse(body, id, options.portalOrigin)) throw new Error("invalid embed response");
+    const tokenStylesheet = element(options.document, "link");
+    tokenStylesheet.rel = "stylesheet";
+    tokenStylesheet.crossOrigin = "anonymous";
+    tokenStylesheet.href = `${options.portalOrigin.replace(/\/+$/, "")}/api/embeds/${id}/styles.css`;
+    shadow.append(tokenStylesheet);
     host.dataset.pbEmbedMounted = "ready";
     renderPrompt(shadow, body, pageUrl.href, options.document);
   }).catch(() => {
@@ -237,13 +258,19 @@ function mountEmbed(host: HTMLElement, options: EmbedRuntimeOptions, id: string,
   };
 }
 
-/** Install a framework-free widget runtime. The global guard protects pages
-    that accidentally include the embed script more than once. */
+/** Keep one observer per portal origin so duplicate scripts are idempotent
+    without blocking separate portals embedded on the same page. */
 export function initializeEmbeds(options: EmbedRuntimeOptions): () => void {
   const browserWindow = options.document.defaultView;
   if (!browserWindow) return () => undefined;
-  const view = browserWindow as Window & { [INSTALLED_KEY]?: () => void };
-  const existing = view[INSTALLED_KEY];
+  const view = browserWindow as Window & {
+    [INSTALLED_KEY]?: EmbedCleanupRegistry | EmbedCleanup;
+  };
+  const installed = view[INSTALLED_KEY];
+  const cleanups = installed instanceof Map ? installed : new Map<string, EmbedCleanup>();
+  if (typeof installed === "function") installed();
+  const portalOrigin = new URL(options.portalOrigin).origin;
+  const existing = cleanups.get(portalOrigin);
   if (existing) return existing;
 
   const themeCleanups: Array<() => void> = [];
@@ -255,7 +282,7 @@ export function initializeEmbeds(options: EmbedRuntimeOptions): () => void {
     matches.push(...node.querySelectorAll<HTMLElement>(EMBED_SELECTOR));
     for (const host of matches) {
       if (host.dataset.pbEmbedMounted || host.shadowRoot) continue;
-      const location = shareLocation(host.getAttribute("data-promptbranch-embed") ?? "", options.portalOrigin);
+      const location = shareLocation(host.getAttribute("data-promptbranch-embed") ?? "", portalOrigin);
       if (location) themeCleanups.push(mountEmbed(host, options, location.id, location.url));
     }
   };
@@ -274,8 +301,10 @@ export function initializeEmbeds(options: EmbedRuntimeOptions): () => void {
   const cleanup = () => {
     observer.disconnect();
     for (const stopListening of themeCleanups) stopListening();
-    delete view[INSTALLED_KEY];
+    cleanups.delete(portalOrigin);
+    if (cleanups.size === 0 && view[INSTALLED_KEY] === cleanups) delete view[INSTALLED_KEY];
   };
-  view[INSTALLED_KEY] = cleanup;
+  cleanups.set(portalOrigin, cleanup);
+  view[INSTALLED_KEY] = cleanups;
   return cleanup;
 }

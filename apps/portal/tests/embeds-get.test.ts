@@ -81,6 +81,8 @@ describe("GET /api/embeds/[id]", () => {
     });
     expect(body.contentHtml).not.toMatch(/<script|onerror|javascript:/i);
     expect(body.sourceHtml).not.toMatch(/<script\b|<img\b|<a\b/i);
+    expect(body.contentHtml).not.toContain('style="');
+    expect(body.sourceHtml).not.toContain('style="');
     expect(body.sourceHtml).toContain("&#x3C;img");
     expect(JSON.stringify(body)).not.toContain(deleteToken);
     expect(JSON.stringify(body)).not.toContain("private history note");
