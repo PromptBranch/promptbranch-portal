@@ -61,8 +61,9 @@ describe("SnapshotView", () => {
 
   it("mounts the code box with both views precomputed", () => {
     renderView();
-    expect(screen.getByText("prompt.md")).toBeInTheDocument();
+    expect(screen.getByTitle("security-audit")).toHaveTextContent("security-audit");
     expect(screen.getByText("security auditor")).toBeInTheDocument();
+    expect(screen.getByText("# raw")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Source" })).toBeInTheDocument();
   });
 
