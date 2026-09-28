@@ -1,3 +1,5 @@
+import { sanitizeEmbedHtml } from "./sanitize-html";
+
 export interface EmbedResponse {
   formatVersion: 1;
   id: string;
@@ -143,10 +145,6 @@ function renderPrompt(
   renderedPane.setAttribute("aria-label", "Rendered prompt content");
   renderedPane.tabIndex = 0;
   const renderedContent = element(document, "div", "md");
-  // This field is produced by the portal's rehype-sanitize pipeline before
-  // highlighting. Do not use innerHTML for any other response field.
-  renderedContent.innerHTML = prompt.contentHtml;
-  renderedPane.append(renderedContent);
 
   const sourcePane = element(document, "div", "code-box-pane");
   sourcePane.dataset.pane = "source";
@@ -154,8 +152,11 @@ function renderPrompt(
   sourcePane.setAttribute("role", "region");
   sourcePane.setAttribute("aria-label", "Source Markdown content");
   sourcePane.tabIndex = 0;
+  const sanitized = sanitizeEmbedHtml(document, prompt.contentHtml, prompt.sourceHtml, pageUrl);
+  renderedContent.append(sanitized.rendered);
+  renderedPane.append(renderedContent);
   const sourceContent = element(document, "div", "source-view");
-  sourceContent.innerHTML = prompt.sourceHtml;
+  sourceContent.append(sanitized.source);
   sourcePane.append(sourceContent);
   frame.append(bar, renderedPane, sourcePane);
 

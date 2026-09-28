@@ -191,6 +191,51 @@ describe("PromptBranch inline widget", () => {
     }
   });
 
+  it("sanitizes HTML responses before attaching them to the host page", async () => {
+    const target = host();
+    document.body.append(target);
+    const hostileResponse: EmbedResponse = {
+      ...EMBED,
+      contentHtml: [
+        '<h1>Review <strong>safely</strong></h1>',
+        '<a class="safe-link" href="https://docs.example/review">Documentation</a>',
+        '<a class="relative-link" href="/guide">Guide</a>',
+        '<a class="unsafe-link" href="javascript:alert(1)">Unsafe link</a>',
+        '<img class="relative-image" src="/sensitive-get" onerror="alert(1)">',
+        '<picture><source srcset="/sensitive-get"><img src="/fallback"></picture>',
+        '<svg onload="alert(1)"><circle></circle></svg>',
+        '<iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>',
+        '<form action="https://attacker.example"><button>Submit</button></form>',
+        '<div style="position:fixed;inset:0">Overlay</div>',
+      ].join(""),
+      sourceHtml: [
+        '<pre class="shiki"><code><span class="line pb-shiki-abcdef123456"># Review</span></code></pre>',
+        '<img src="x" onerror="alert(1)">',
+        '<svg onload="alert(1)"></svg>',
+      ].join(""),
+    };
+    initialize(vi.fn().mockResolvedValue(response(hostileResponse)));
+    await flush();
+
+    const root = target.shadowRoot!;
+    const rendered = root.querySelector<HTMLElement>(".md")!;
+    const source = root.querySelector<HTMLElement>(".source-view")!;
+    expect(rendered.querySelector("h1 strong")?.textContent).toBe("safely");
+    expect(rendered.querySelector<HTMLAnchorElement>(".safe-link")?.href)
+      .toBe("https://docs.example/review");
+    expect(rendered.querySelector(".relative-link")?.getAttribute("href")).toBe(`${ORIGIN}/guide`);
+    expect(rendered.querySelector(".relative-image")?.getAttribute("src")).toBe(`${ORIGIN}/sensitive-get`);
+    expect(rendered.querySelector(".unsafe-link")?.hasAttribute("href")).toBe(false);
+    expect(rendered.querySelector("picture, source, [srcset]")).toBeNull();
+    expect(source.querySelector("pre.shiki code .line.pb-shiki-abcdef123456")?.textContent)
+      .toBe("# Review");
+
+    for (const pane of [rendered, source]) {
+      expect(pane.querySelector("script, style, iframe, object, embed, form, svg, math")).toBeNull();
+      expect(pane.querySelector("[onerror], [onload], [srcdoc], [style]")).toBeNull();
+    }
+  });
+
   it("toggles rendered and source views and exposes copy, app, and full-page actions", async () => {
     const target = host();
     document.body.append(target);
