@@ -12,6 +12,9 @@ coverage/
 
 # portal
 apps/portal/.next/
+apps/portal/next-env.d.ts
 apps/portal/data/
+/apps/portal/public/embed.js
+/apps/portal/public/embed.css
 /deploy/portal/.env
 docs/superpowers/*

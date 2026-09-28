@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * attributes and Tailwind's generated <style> tags require it); that is
  * the documented Next.js CSP trade-off, not an accident.
  */
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const nonce = btoa(crypto.randomUUID());
   // Dev-only: react-refresh evaluates module code with `eval`, so HMR dies
   // (and client components never hydrate) under a strict CSP. Production
@@ -16,11 +16,17 @@ export function middleware(request: NextRequest): NextResponse {
     process.env.NODE_ENV === "development"
       ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`
       : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`;
+  // The landing page carries one externally hosted directory badge. Keep the
+  // exception route-scoped so shared prompt pages remain fully self-contained.
+  const imageSrc =
+    request.nextUrl.pathname === "/"
+      ? "img-src 'self' data: https://www.promptfrenzy.com"
+      : "img-src 'self' data:";
   const csp = [
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    imageSrc,
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",

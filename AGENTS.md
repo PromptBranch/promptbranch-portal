@@ -65,7 +65,7 @@ SQLite tables created on open (WAL, `busy_timeout = 3000`): `snapshots` (immutab
 
 ### Key cross-cutting pieces
 
-- `apps/portal/src/middleware.ts` — strict nonce CSP (`'strict-dynamic'`, no `unsafe-inline` for scripts; `style-src 'unsafe-inline'` is a deliberate documented trade-off) plus `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, permissions-policy. `'unsafe-eval'` is added to `script-src` **in development only** (react-refresh needs it). The nonce is propagated to the layout via the `x-nonce` request header.
+- `apps/portal/src/proxy.ts` — strict nonce CSP (`'strict-dynamic'`, no `unsafe-inline` for scripts; `style-src 'unsafe-inline'` is a deliberate documented trade-off) plus `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, permissions-policy. `'unsafe-eval'` is added to `script-src` **in development only** (react-refresh needs it). The nonce is propagated to the layout via the `x-nonce` request header.
 - `apps/portal/src/lib/rate-limit.ts` — in-memory per-IP token buckets: publish 10/hour, reports 5/hour, reads 300/minute. Buckets reset on restart; single-instance deployment makes process-local state sufficient.
 - `apps/portal/src/lib/ip.ts` — `clientIp` trusts the **last** `X-Forwarded-For` hop (the one a trusted proxy appends; Caddy pins it via `header_up X-Forwarded-For {remote_host}`). Without such a proxy, rate limiting is best-effort. `hashIp` stores only sha256(IP + daily-rotating salt) — raw IPs are never stored.
 - `apps/portal/src/lib/env.ts` — `PUBLIC_BASE_URL` (default `http://localhost:3000`), `PORT` (3000), `DATA_DIR` (`./data`, `/data` in Docker). Zod-parsed on every call (not cached) so tests can mutate `process.env`.

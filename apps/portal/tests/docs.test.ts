@@ -84,7 +84,7 @@ End content
     expect(page?.contentHtml).toContain("Copy prompt");
     expect(page?.contentHtml).not.toContain("CommandOrControl");
     expect(page?.contentHtml).not.toContain("Electron");
-    expect(page?.contentHtml).toContain("Click the active tag again");
+    expect(page?.contentHtml).toContain("Click that tag again");
   });
 
   it("documents safe version management behavior", async () => {

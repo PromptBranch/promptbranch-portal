@@ -29,6 +29,7 @@
     "src/**/*.tsx",
     "tests/**/*.ts",
     "tests/**/*.tsx",
+    "embed.vite.config.ts",
     "next.config.ts",
     "vitest.config.ts",
     ".next/types/**/*.ts"

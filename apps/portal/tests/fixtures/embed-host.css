@@ -1,0 +1,12 @@
+html { font-size: 62.5%; }
+body { font: 20px serif; color: purple; }
+button { all: initial; font: 42px serif; color: red; }
+.md { display: none !important; }
+[data-promptbranch-embed] {
+  margin: 24px;
+  padding: 40px !important;
+  border: 8px solid red !important;
+  background: hotpink !important;
+  color: red !important;
+  font: 7px serif !important;
+}

@@ -24,8 +24,13 @@ const LINKS = {
   docs: "/docs",
   issues: "https://github.com/PromptBranch/promptbranch/issues",
   x: "https://x.com/PromptBranch",
+  promptFrenzyDirectory: "https://www.promptfrenzy.com/directory",
 } as const;
 
+const PROMPT_FRENZY_LIGHT_MODE_BADGE =
+  "https://www.promptfrenzy.com/badges/directory-mono-dark.svg";
+const PROMPT_FRENZY_DARK_MODE_BADGE =
+  "https://www.promptfrenzy.com/badges/directory-mono-light.svg";
 
 export const metadata: Metadata = {
   // Absolute: the layout's "%s · PromptBranch" template would double the brand.
@@ -372,6 +377,33 @@ export default function Home() {
                 <ArrowUpRight size={14} aria-hidden />
               </a>
             </p>
+            <div className="mt-5 flex justify-center">
+              <a
+                href={LINKS.promptFrenzyDirectory}
+                rel="noopener"
+                target="_blank"
+                title="Featured on PromptFrenzy AI Directory"
+                aria-label="Featured on PromptFrenzy AI Directory"
+                className="group inline-flex overflow-hidden rounded-lg ring-1 ring-line-strong transition-[box-shadow,transform] hover:ring-accent/50 active:translate-y-[1px] focus-visible:outline-accent"
+              >
+                <img
+                  src={PROMPT_FRENZY_DARK_MODE_BADGE}
+                  alt="Featured on PromptFrenzy AI Directory"
+                  width={220}
+                  height={44}
+                  loading="lazy"
+                  className="theme-dark-img block h-11 w-[220px] rounded-lg opacity-90 transition-opacity group-hover:opacity-100"
+                />
+                <img
+                  src={PROMPT_FRENZY_LIGHT_MODE_BADGE}
+                  alt="Featured on PromptFrenzy AI Directory"
+                  width={220}
+                  height={44}
+                  loading="lazy"
+                  className="theme-light-img h-11 w-[220px] rounded-lg opacity-90 transition-opacity group-hover:opacity-100"
+                />
+              </a>
+            </div>
           </div>
         </section>
       </main>

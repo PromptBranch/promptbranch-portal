@@ -15,12 +15,12 @@ describe("production container runtime contract", () => {
     expect(compose).toContain("- /app/apps/portal/.next/cache:rw,noexec,nosuid,nodev");
   });
 
-  it("keeps Next on webpack while the workspace package needs extension aliases", () => {
+  it("builds embed assets before running Next on webpack", () => {
     const packageJson = JSON.parse(
       readFileSync(resolve(portalRoot, "package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
 
-    expect(packageJson.scripts.dev).toBe("next dev --webpack");
-    expect(packageJson.scripts.build).toBe("next build --webpack");
+    expect(packageJson.scripts.dev).toBe("pnpm embed:build && next dev --webpack");
+    expect(packageJson.scripts.build).toBe("pnpm embed:build && next build --webpack");
   });
 });

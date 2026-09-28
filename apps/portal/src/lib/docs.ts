@@ -61,7 +61,7 @@ export const DOCS_STRUCTURE: Array<{
         slug: "getting-started/overview",
         file: "getting-started/overview.md",
         title: "Overview",
-        description: "What PromptBranch does and where your prompt library lives.",
+        description: "What PromptBranch does, where your library lives, and how to share, embed, or import prompts.",
       },
       {
         slug: "getting-started/installation",
@@ -73,7 +73,7 @@ export const DOCS_STRUCTURE: Array<{
         slug: "getting-started/quickstart",
         file: "getting-started/quickstart.md",
         title: "5-Minute Quickstart",
-        description: "Your first prompt, variables, multi-model run, version branching, and sharing.",
+        description: "Your first prompt, multi-model runs, version branching, website embeds, and public Markdown imports.",
       },
       {
         slug: "getting-started/core-concepts",

@@ -1,0 +1,347 @@
+// @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { initializeEmbeds, type EmbedResponse } from "@/embed/widget-runtime";
+
+const ID = "V1StGXR8_Z5jdHi6B-myT";
+const ORIGIN = "https://prompts.example";
+const SNAPSHOT_URL = `${ORIGIN}/p/${ID}`;
+
+const EMBED: EmbedResponse = {
+  formatVersion: 1,
+  id: ID,
+  url: SNAPSHOT_URL,
+  title: "Security prompt",
+  description: "Review code carefully.",
+  tags: ["security"],
+  markdown: "# Review\n\nDo the work.",
+  contentHtml: "<h1>Review</h1><p>Do the work.</p>",
+  sourceHtml: "<pre class=\"shiki\"><code># Review</code></pre>",
+};
+
+function host(url = SNAPSHOT_URL): HTMLDivElement {
+  const element = document.createElement("div");
+  element.setAttribute("data-promptbranch-embed", url);
+  return element;
+}
+
+function response(body: unknown = EMBED, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    url: `${ORIGIN}/api/embeds/${ID}`,
+    json: vi.fn().mockResolvedValue(body),
+  };
+}
+
+function initialize(fetcher = vi.fn().mockResolvedValue(response())) {
+  return {
+    fetcher,
+    cleanup: initializeEmbeds({
+      document,
+      portalOrigin: ORIGIN,
+      assetBaseUrl: ORIGIN,
+      fetch: fetcher,
+    }),
+  };
+}
+
+function initializeAtOrigin(
+  portalOrigin: string,
+  fetcher: NonNullable<Parameters<typeof initialize>[0]>,
+) {
+  return initializeEmbeds({
+    document,
+    portalOrigin,
+    assetBaseUrl: portalOrigin,
+    fetch: fetcher as unknown as typeof fetch,
+  });
+}
+
+async function flush(): Promise<void> {
+  await vi.waitFor(() => {
+    const mounted = [...document.querySelectorAll<HTMLElement>("[data-promptbranch-embed]")].some((target) =>
+      target.shadowRoot?.querySelector("[data-pb-embed-window]"),
+    );
+    expect(mounted).toBe(true);
+  });
+}
+
+describe("PromptBranch inline widget", () => {
+  let mediaMatches = false;
+  let mediaChange: ((event: MediaQueryListEvent) => void) | undefined;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mediaMatches = false;
+    mediaChange = undefined;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn(() => ({
+        get matches() { return mediaMatches; },
+        media: "(prefers-color-scheme: light)",
+        addEventListener: vi.fn((_event: string, callback: (event: MediaQueryListEvent) => void) => {
+          mediaChange = callback;
+        }),
+        removeEventListener: vi.fn(),
+      })),
+    });
+  });
+
+  afterEach(() => {
+    const installed = (window as Window & {
+      __pbEmbedCleanup?: (() => void) | Map<string, () => void>;
+    }).__pbEmbedCleanup;
+    if (installed instanceof Map) {
+      for (const cleanup of [...installed.values()]) cleanup();
+    } else {
+      installed?.();
+    }
+    document.body.innerHTML = "";
+    delete (window as Window & { __pbEmbedCleanup?: () => void }).__pbEmbedCleanup;
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+  });
+
+  it("mounts one and two prompts, observes later nodes, and stays idempotent", async () => {
+    const first = host();
+    const second = host();
+    document.body.append(first, second);
+    const { fetcher, cleanup } = initialize();
+
+    initialize();
+    await flush();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(first.shadowRoot?.querySelectorAll("[data-pb-embed-window]")).toHaveLength(1);
+    expect(second.shadowRoot?.querySelectorAll("[data-pb-embed-window]")).toHaveLength(1);
+
+    const later = host();
+    document.body.append(later);
+    await vi.waitFor(() => expect(later.shadowRoot?.querySelector("[data-pb-embed-window]")).not.toBeNull());
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    cleanup();
+  });
+
+  it("initializes each portal origin once when a page uses multiple origins", async () => {
+    const otherOrigin = "https://library.example";
+    const otherUrl = `${otherOrigin}/p/${ID}`;
+    const officialHost = host();
+    const otherHost = host(otherUrl);
+    document.body.append(officialHost, otherHost);
+    const officialFetch = vi.fn().mockResolvedValue(response(EMBED));
+    const otherEmbed = { ...EMBED, url: otherUrl };
+    const otherFetch = vi.fn().mockResolvedValue(response(otherEmbed));
+
+    const officialCleanup = initializeAtOrigin(ORIGIN, officialFetch);
+    const otherCleanup = initializeAtOrigin(otherOrigin, otherFetch);
+    initializeAtOrigin(ORIGIN, officialFetch);
+    initializeAtOrigin(otherOrigin, otherFetch);
+
+    await vi.waitFor(() => {
+      expect(officialHost.dataset.pbEmbedMounted).toBe("ready");
+      expect(otherHost.dataset.pbEmbedMounted).toBe("ready");
+    });
+    expect(officialFetch).toHaveBeenCalledTimes(1);
+    expect(otherFetch).toHaveBeenCalledTimes(1);
+    expect(officialHost.shadowRoot?.querySelector("link[rel=stylesheet]")?.getAttribute("href"))
+      .toBe(`${ORIGIN}/embed.css`);
+    expect(otherHost.shadowRoot?.querySelector("link[rel=stylesheet]")?.getAttribute("href"))
+      .toBe(`${otherOrigin}/embed.css`);
+    officialCleanup();
+    otherCleanup();
+  });
+
+  it("rejects invalid and cross-origin share URLs before fetching", () => {
+    const bad = host("https://attacker.example/p/aaaaaaaaaaaaaaaaaaaaa");
+    const malformed = host("javascript:alert(1)");
+    document.body.append(bad, malformed);
+    const { fetcher } = initialize();
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(bad.shadowRoot).toBeNull();
+    expect(malformed.shadowRoot).toBeNull();
+    expect(document.querySelector("iframe, style, link[rel=stylesheet]")).toBeNull();
+  });
+
+  it.each([
+    ["missing", 404],
+    ["revoked", 410],
+    ["rate limited", 429],
+  ])("shows a safe unavailable state when the server reports %s", async (_label, status) => {
+    const target = host();
+    document.body.append(target);
+    const { fetcher } = initialize(vi.fn().mockResolvedValue(response({}, status)));
+
+    await vi.waitFor(() => expect(target.shadowRoot?.textContent).toContain("This shared prompt is unavailable."));
+    expect(target.shadowRoot?.querySelector("a[href='" + SNAPSHOT_URL + "']")?.textContent).toBe("View full prompt");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles network and malformed-response failures without rendering remote error text", async () => {
+    for (const fetcher of [
+      vi.fn().mockRejectedValue(new Error("private network detail")),
+      vi.fn().mockResolvedValue(response({ ...EMBED, contentHtml: 42 })),
+    ]) {
+      const target = host();
+      document.body.append(target);
+      initialize(fetcher);
+
+      await vi.waitFor(() => expect(target.shadowRoot?.textContent).toContain("This shared prompt is unavailable."));
+      expect(target.shadowRoot?.textContent).not.toContain("private network detail");
+      target.remove();
+    }
+  });
+
+  it("sanitizes HTML responses before attaching them to the host page", async () => {
+    const target = host();
+    document.body.append(target);
+    const hostileResponse: EmbedResponse = {
+      ...EMBED,
+      contentHtml: [
+        '<h1>Review <strong>safely</strong></h1>',
+        '<a class="safe-link" href="https://docs.example/review">Documentation</a>',
+        '<a class="relative-link" href="/guide">Guide</a>',
+        '<a class="unsafe-link" href="javascript:alert(1)">Unsafe link</a>',
+        '<img class="relative-image" src="/sensitive-get" onerror="alert(1)">',
+        '<picture><source srcset="/sensitive-get"><img src="/fallback"></picture>',
+        '<svg onload="alert(1)"><circle></circle></svg>',
+        '<iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>',
+        '<form action="https://attacker.example"><button>Submit</button></form>',
+        '<div style="position:fixed;inset:0">Overlay</div>',
+      ].join(""),
+      sourceHtml: [
+        '<pre class="shiki"><code><span class="line pb-shiki-abcdef123456"># Review</span></code></pre>',
+        '<img src="x" onerror="alert(1)">',
+        '<svg onload="alert(1)"></svg>',
+      ].join(""),
+    };
+    initialize(vi.fn().mockResolvedValue(response(hostileResponse)));
+    await flush();
+
+    const root = target.shadowRoot!;
+    const rendered = root.querySelector<HTMLElement>(".md")!;
+    const source = root.querySelector<HTMLElement>(".source-view")!;
+    expect(rendered.querySelector("h1 strong")?.textContent).toBe("safely");
+    expect(rendered.querySelector<HTMLAnchorElement>(".safe-link")?.href)
+      .toBe("https://docs.example/review");
+    expect(rendered.querySelector(".relative-link")?.getAttribute("href")).toBe(`${ORIGIN}/guide`);
+    expect(rendered.querySelector(".relative-image")?.getAttribute("src")).toBe(`${ORIGIN}/sensitive-get`);
+    expect(rendered.querySelector(".unsafe-link")?.hasAttribute("href")).toBe(false);
+    expect(rendered.querySelector("picture, source, [srcset]")).toBeNull();
+    expect(source.querySelector("pre.shiki code .line.pb-shiki-abcdef123456")?.textContent)
+      .toBe("# Review");
+
+    for (const pane of [rendered, source]) {
+      expect(pane.querySelector("script, style, iframe, object, embed, form, svg, math")).toBeNull();
+      expect(pane.querySelector("[onerror], [onload], [srcdoc], [style]")).toBeNull();
+    }
+  });
+
+  it("toggles rendered and source views and exposes copy, app, and full-page actions", async () => {
+    const target = host();
+    document.body.append(target);
+    const clipboardWrite = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: clipboardWrite },
+    });
+    initialize();
+    await flush();
+
+    const root = target.shadowRoot!;
+    const rendered = root.querySelector<HTMLButtonElement>("[data-view-button='rendered']")!;
+    const source = root.querySelector<HTMLButtonElement>("[data-view-button='source']")!;
+    const frame = root.querySelector<HTMLElement>("[data-pb-embed-window]")!;
+    expect(frame.dataset.view).toBe("rendered");
+    source.click();
+    expect(frame.dataset.view).toBe("source");
+    expect(source.getAttribute("aria-pressed")).toBe("true");
+    rendered.click();
+    expect(frame.dataset.view).toBe("rendered");
+
+    root.querySelector<HTMLButtonElement>("[data-copy-markdown]")!.click();
+    await vi.waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(EMBED.markdown));
+    expect(root.querySelector<HTMLAnchorElement>("[data-open-promptbranch]")?.href).toBe(
+      `promptbranch://import?url=${encodeURIComponent(SNAPSHOT_URL)}`,
+    );
+    expect(root.querySelector<HTMLAnchorElement>("[data-view-full]")?.href).toBe(SNAPSHOT_URL);
+    expect(root.querySelector("[data-prompt-description]")?.textContent).toBe(EMBED.description);
+    expect(root.querySelector("iframe, style")).toBeNull();
+  });
+
+  it("makes both prompt panes keyboard-scrollable and bounds long content", async () => {
+    const target = host();
+    document.body.append(target);
+    initialize();
+    await flush();
+
+    const root = target.shadowRoot!;
+    const rendered = root.querySelector<HTMLElement>("[data-pane='rendered']")!;
+    const source = root.querySelector<HTMLElement>("[data-pane='source']")!;
+    expect(rendered.classList.contains("pb-embed-scroll")).toBe(true);
+    expect(source.classList.contains("pb-embed-scroll")).toBe(true);
+    expect(rendered.getAttribute("role")).toBe("region");
+    expect(rendered.getAttribute("aria-label")).toBe("Rendered prompt content");
+    expect(rendered.tabIndex).toBe(0);
+    expect(source.getAttribute("aria-label")).toBe("Source Markdown content");
+
+    const promptWindowCss = readFileSync("src/app/prompt-window.css", "utf8");
+    const widgetCss = readFileSync("src/embed/widget.css", "utf8");
+    expect(`${promptWindowCss}\n${widgetCss}`).not.toMatch(/\b\d+(?:\.\d+)?rem\b/);
+    expect(widgetCss).toMatch(/\.pb-embed-scroll\s*\{[^}]*max-height:[^}]*overflow:[^}]*auto/s);
+  });
+
+  it("resets host-page typography and common div styling at the shadow boundary", () => {
+    const widgetCss = readFileSync("src/embed/widget.css", "utf8");
+    expect(widgetCss).toMatch(/:host\s*\{[^}]*all:\s*initial\s*!important/s);
+    expect(widgetCss).toMatch(/\.pb-embed-surface\s*\{[^}]*font-size:\s*16px/s);
+    expect(widgetCss).toMatch(/\.pb-embed-surface\s*\{[^}]*font-family:\s*var\(--font-sans\)/s);
+  });
+
+  it("resolves auto theme from the OS and honors explicit light/dark overrides", async () => {
+    const automatic = host();
+    const light = host();
+    const dark = host();
+    light.setAttribute("data-promptbranch-theme", "light");
+    dark.setAttribute("data-promptbranch-theme", "dark");
+    document.body.append(automatic, light, dark);
+    initialize();
+    await flush();
+
+    expect(automatic.dataset.pbThemeResolved).toBe("dark");
+    expect(light.dataset.pbThemeResolved).toBe("light");
+    expect(dark.dataset.pbThemeResolved).toBe("dark");
+    mediaMatches = true;
+    mediaChange?.({ matches: true } as MediaQueryListEvent);
+    expect(automatic.dataset.pbThemeResolved).toBe("light");
+  });
+
+  it("keeps controls semantic and keyboard focusable, with assets scoped to the shadow root", async () => {
+    const target = host();
+    document.body.append(target);
+    initialize();
+    await flush();
+
+    const root = target.shadowRoot!;
+    const buttons = [...root.querySelectorAll("button")];
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    for (const button of buttons) {
+      button.focus();
+      expect(root.activeElement).toBe(button);
+    }
+    expect(root.querySelector("link[rel=stylesheet]")?.getAttribute("href")).toBe(`${ORIGIN}/embed.css`);
+    expect(document.head.querySelector("link[rel=stylesheet], style")).toBeNull();
+    expect(document.cookie).toBe("");
+  });
+
+  it("shares the portal window stylesheet without relying on global page styles", () => {
+    const windowCss = readFileSync("src/app/prompt-window.css", "utf8");
+    const portalCss = readFileSync("src/app/globals.css", "utf8");
+    expect(windowCss).toContain(":root,");
+    expect(windowCss).toContain(":host");
+    expect(windowCss).toContain(".md {");
+    expect(windowCss).toContain(".code-box {");
+    expect(windowCss).toContain(".source-view {");
+    expect(windowCss).toContain(".shiki");
+    expect(portalCss).toContain('@import "./prompt-window.css";');
+  });
+});

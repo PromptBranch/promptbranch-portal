@@ -56,12 +56,14 @@ describe("SnapshotView", () => {
       "href",
       "promptbranch://import?url=http%3A%2F%2Flocalhost%3A3000%2Fp%2FV1StGXR8_Z5jdHi6B-myT",
     );
+    expect(screen.getByRole("button", { name: "Copy embed code" })).toBeInTheDocument();
   });
 
   it("mounts the code box with both views precomputed", () => {
     renderView();
-    expect(screen.getByText("prompt.md")).toBeInTheDocument();
+    expect(screen.getByTitle("security-audit")).toHaveTextContent("security-audit");
     expect(screen.getByText("security auditor")).toBeInTheDocument();
+    expect(screen.getByText("# raw")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Source" })).toBeInTheDocument();
   });
 

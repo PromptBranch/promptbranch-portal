@@ -5,11 +5,12 @@
   "type": "module",
   "description": "PromptBranch sharing portal: self-hosted Next.js service for unlisted prompt snapshots (JSON API + SSR viewer).",
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "pnpm embed:build && next dev --webpack",
+    "build": "pnpm embed:build && next build --webpack",
+    "embed:build": "vite build --config embed.vite.config.ts",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "next typegen && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -17,6 +18,7 @@
     "@shikijs/rehype": "^4.4.3",
     "better-sqlite3": "13.0.3",
     "diff": "^9.0.0",
+    "dompurify": "^3.4.16",
     "mermaid": "^12.0.0",
     "next": "16.3.5",
     "react": "19.3.0",
