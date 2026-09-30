@@ -107,6 +107,9 @@ function renderPrompt(
   const frame = element(document, "article", "code-box pb-embed-window");
   frame.dataset.view = "rendered";
   frame.dataset.pbEmbedWindow = "";
+  // Opt-in styling hooks let the landing demo align its window with the code
+  // sample while ordinary embeds retain their own natural content sizing.
+  frame.setAttribute("part", "window");
   frame.setAttribute("aria-label", `Shared prompt: ${prompt.title}`);
 
   const bar = element(document, "header", "code-box-bar pb-embed-bar");
@@ -114,6 +117,7 @@ function renderPrompt(
   dots.setAttribute("aria-hidden", "true");
   dots.append(element(document, "i"), element(document, "i"), element(document, "i"));
   const title = element(document, "span", "code-box-title");
+  title.setAttribute("part", "title");
   title.textContent = prompt.title;
   title.title = prompt.title;
 
@@ -140,6 +144,7 @@ function renderPrompt(
 
   const renderedPane = element(document, "div", "code-box-pane");
   renderedPane.dataset.pane = "rendered";
+  renderedPane.setAttribute("part", "content");
   renderedPane.classList.add("pb-embed-scroll");
   renderedPane.setAttribute("role", "region");
   renderedPane.setAttribute("aria-label", "Rendered prompt content");
@@ -148,6 +153,7 @@ function renderPrompt(
 
   const sourcePane = element(document, "div", "code-box-pane");
   sourcePane.dataset.pane = "source";
+  sourcePane.setAttribute("part", "content");
   sourcePane.classList.add("pb-embed-scroll");
   sourcePane.setAttribute("role", "region");
   sourcePane.setAttribute("aria-label", "Source Markdown content");

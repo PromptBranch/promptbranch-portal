@@ -4,6 +4,7 @@ import { snapshotSchema, type SnapshotPayload } from "@promptbranch/share";
 import { GoneView } from "@/components/gone-view";
 import { SnapshotView } from "@/components/snapshot-view";
 import { getDb, getSnapshot } from "@/lib/db";
+import { getDemoSnapshot } from "@/lib/demo-prompt";
 import { getEnv } from "@/lib/env";
 import { highlightSource } from "@/lib/highlight";
 import { markdownToHtml } from "@/lib/markdown-to-html";
@@ -16,7 +17,7 @@ interface PageProps {
 }
 
 function loadSnapshot(id: string): { found: boolean; deleted: boolean; snapshot: SnapshotPayload | null } {
-  const row = getSnapshot(getDb(), id);
+  const row = getDemoSnapshot(id) ?? getSnapshot(getDb(), id);
   if (!row) return { found: false, deleted: false, snapshot: null };
   if (row.deleted_at) return { found: true, deleted: true, snapshot: null };
   return { found: true, deleted: false, snapshot: snapshotSchema.parse(JSON.parse(row.payload)) };
@@ -52,7 +53,7 @@ export default async function Page({ params }: PageProps) {
   if (!found) notFound();
   if (deleted || !snapshot) return <GoneView />;
   const url = `${getEnv().PUBLIC_BASE_URL}/p/${id}`;
-  const row = getSnapshot(getDb(), id)!;
+  const row = (getDemoSnapshot(id) ?? getSnapshot(getDb(), id))!;
   // All async rendering work happens here; SnapshotView stays synchronous.
   const [contentHtml, sourceHtml] = await Promise.all([
     markdownToHtml(snapshot.content),

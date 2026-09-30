@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hashToken } from "@promptbranch/share";
 import { getDb, getDeleteTokenHash, getSnapshot, softDeleteSnapshot } from "@/lib/db";
 import { getEnv } from "@/lib/env";
+import { getDemoSnapshot } from "@/lib/demo-prompt";
 import { clientIp } from "@/lib/ip";
 import { readLimiter } from "@/lib/rate-limit";
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     );
   }
   const { id } = await context.params;
-  const row = getSnapshot(getDb(), id);
+  const row = getDemoSnapshot(id) ?? getSnapshot(getDb(), id);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (row.deleted_at) return NextResponse.json({ error: "snapshot deleted" }, { status: 410 });
   return NextResponse.json({
