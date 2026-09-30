@@ -15,6 +15,7 @@ import {
   XLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SharingShowcase } from "@/components/sharing-showcase";
 import { getEnv } from "@/lib/env";
 
 // Canonical outbound links.
@@ -107,10 +108,11 @@ const PLATFORMS = [
   },
 ] as const;
 
-export default function Home() {
+export default async function Home() {
   // Computed at render time (not module scope) so the runtime PUBLIC_BASE_URL
   // is used — Docker sets it per deployment, never at build time.
   const baseUrl = getEnv().PUBLIC_BASE_URL;
+  const sharingShowcase = await SharingShowcase({ baseUrl });
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -319,6 +321,8 @@ export default function Home() {
             </Link>
           </div>
         </section>
+
+        {sharingShowcase}
 
         {/* Download: centered band, platform cards, and signing notes. */}
         <section className="border-t border-line">

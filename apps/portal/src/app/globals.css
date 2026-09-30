@@ -148,6 +148,71 @@ body {
   scroll-margin-top: 5.5rem;
 }
 
+/* One shared window size keeps both code/result pairs aligned. Content scrolls
+   inside the windows so switching embed views cannot shift the next example. */
+[aria-labelledby="sharing-examples-heading"] {
+  --showcase-window-height: 360px;
+}
+.showcase-label {
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.showcase-code,
+.showcase-preview,
+.showcase-embed::part(window) {
+  display: flex;
+  flex-direction: column;
+  height: var(--showcase-window-height);
+}
+.showcase-code > .code-box-bar,
+.showcase-code > :last-child,
+.showcase-preview > .code-box-bar {
+  flex-shrink: 0;
+}
+.showcase-code .code-box-title,
+.showcase-preview .code-box-title,
+.showcase-embed::part(title) {
+  position: static;
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  transform: none;
+  text-align: left;
+}
+.showcase-code > .source-view,
+.showcase-embed::part(content) {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
+/* Keep long, copyable URLs visible inside the landing's narrow code windows. */
+.showcase-code .source-view pre.shiki {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.85;
+}
+.showcase-code .source-view .line {
+  position: relative;
+  display: block;
+  white-space: pre-wrap;
+  padding-left: 4ch;
+}
+.showcase-code .source-view .line::before {
+  position: absolute;
+  left: 0;
+  margin-right: 0;
+  width: 2ch;
+}
+
 /* Keyboard keys */
 kbd {
   font-family: var(--font-mono);

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getDb, getSnapshot } from "@/lib/db";
+import { getDemoSnapshot } from "@/lib/demo-prompt";
 
 export const runtime = "nodejs";
 // A deleted snapshot must stop serving its card immediately — never cache.
@@ -17,7 +18,7 @@ export function truncate(text: string, max: number): string {
     this route errors. Palette mirrors globals.css dark theme. */
 export default async function OgImage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const row = getSnapshot(getDb(), id);
+  const row = getDemoSnapshot(id) ?? getSnapshot(getDb(), id);
   let title = "PromptBranch snapshot";
   let tags: string[] = [];
   if (row && !row.deleted_at) {

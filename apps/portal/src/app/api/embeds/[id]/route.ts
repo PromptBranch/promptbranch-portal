@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { snapshotIdSchema } from "@promptbranch/share";
 import { getDb, getSnapshot } from "@/lib/db";
+import { getDemoSnapshot } from "@/lib/demo-prompt";
 import { buildEmbedResponse } from "@/lib/embed-response";
 import { clientIp } from "@/lib/ip";
 import { readLimiter } from "@/lib/rate-limit";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
   if (!snapshotIdSchema.safeParse(id).success) return jsonResponse({ error: "not found" }, 404);
 
   try {
-    const row = getSnapshot(getDb(), id);
+    const row = getDemoSnapshot(id) ?? getSnapshot(getDb(), id);
     if (!row) return jsonResponse({ error: "not found" }, 404);
     if (row.deleted_at) return jsonResponse({ error: "snapshot deleted" }, 410);
 

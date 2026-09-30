@@ -12,9 +12,9 @@ const PROMPT_FRENZY_BADGE_DARK =
 const PROMPT_FRENZY_BADGE_LIGHT =
   "https://www.promptfrenzy.com/badges/directory-mono-light.svg";
 
-describe("landing page", () => {
-  it("renders the hero with value proposition and primary CTAs", () => {
-    render(<Home />);
+describe("landing page", async () => {
+  it("renders the hero with value proposition and primary CTAs", async () => {
+    render(await Home());
     expect(
       screen.getByRole("heading", { level: 1, name: "Version control for your AI prompts" }),
     ).toBeInTheDocument();
@@ -28,18 +28,18 @@ describe("landing page", () => {
     expect(screen.getAllByAltText(/The PromptBranch desktop app/)).toHaveLength(2);
   });
 
-  it("renders a theme toggle and both hero screenshot variants", () => {
-    render(<Home />);
+  it("renders a theme toggle and both hero screenshot variants", async () => {
+    render(await Home());
     expect(
       screen.getByRole("button", { name: /Switch to (light|dark) mode/ }),
     ).toBeInTheDocument();
-    const { container } = render(<Home />);
+    const { container } = render(await Home());
     expect(container.querySelector(".theme-dark-img")).toBeInTheDocument();
     expect(container.querySelector(".theme-light-img")).toBeInTheDocument();
   });
 
-  it("renders the four feature highlights", () => {
-    render(<Home />);
+  it("renders the four feature highlights", async () => {
+    render(await Home());
     for (const title of [
       "Branching version history",
       "Evidence over vibes",
@@ -50,8 +50,8 @@ describe("landing page", () => {
     }
   });
 
-  it("links every available desktop platform card to releases with neutral styling", () => {
-    render(<Home />);
+  it("links every available desktop platform card to releases with neutral styling", async () => {
+    render(await Home());
     for (const [name, note] of [
       ["macOS", "Apple Silicon & Intel"],
       ["Windows", "x64 & ARM64"],
@@ -75,8 +75,8 @@ describe("landing page", () => {
     ).toBeInTheDocument();
   });
 
-  it("invites visitors to follow PromptBranch on X from the hero", () => {
-    render(<Home />);
+  it("invites visitors to follow PromptBranch on X from the hero", async () => {
+    render(await Home());
     const hero = screen
       .getByRole("heading", { level: 1, name: "Version control for your AI prompts" })
       .closest("section");
@@ -91,8 +91,8 @@ describe("landing page", () => {
     expect(followLink).toHaveAttribute("target", "_blank");
   });
 
-  it("explains prompt sharing and links the customer guide", () => {
-    render(<Home />);
+  it("explains prompt sharing and links the customer guide", async () => {
+    render(await Home());
     expect(screen.getByRole("heading", { name: "Share a prompt when you choose" })).toBeInTheDocument();
     expect(
       screen.getByText(/Publish an immutable snapshot, review the secret scan, and revoke the link later if needed\./),
@@ -103,8 +103,8 @@ describe("landing page", () => {
     );
   });
 
-  it("links to docs and issues in the footer, all on the public repo", () => {
-    render(<Home />);
+  it("links to docs and issues in the footer, all on the public repo", async () => {
+    render(await Home());
     expect(screen.getByRole("link", { name: "Documentation" })).toHaveAttribute(
       "href",
       "/docs",
@@ -116,8 +116,8 @@ describe("landing page", () => {
     expect(screen.queryByRole("link", { name: "Releases" })).toBeNull();
   });
 
-  it("links to PromptBranch on X from the header", () => {
-    render(<Home />);
+  it("links to PromptBranch on X from the header", async () => {
+    render(await Home());
     const xLink = within(screen.getByRole("banner")).getByRole("link", {
       name: "PromptBranch on X",
     });
@@ -125,16 +125,16 @@ describe("landing page", () => {
     expect(xLink.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("allows the header controls to wrap on narrow screens", () => {
-    const { container } = render(<Home />);
+  it("allows the header controls to wrap on narrow screens", async () => {
+    const { container } = render(await Home());
     const header = screen.getByRole("banner");
     expect(header).toHaveClass("min-h-16", "flex-wrap", "py-3");
     expect(within(header).getByRole("navigation")).toHaveClass("ml-auto", "gap-3");
     expect(container.firstElementChild).toHaveClass("overflow-x-hidden");
   });
 
-  it("links to PromptBranch on X from the footer", () => {
-    render(<Home />);
+  it("links to PromptBranch on X from the footer", async () => {
+    render(await Home());
     const xLink = within(screen.getByRole("contentinfo")).getByRole("link", {
       name: "PromptBranch on X",
     });
@@ -142,8 +142,8 @@ describe("landing page", () => {
     expect(xLink.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("shows the crawlable PromptFrenzy directory badge below the repository prompt", () => {
-    render(<Home />);
+  it("shows the crawlable PromptFrenzy directory badge below the repository prompt", async () => {
+    render(await Home());
     const downloadSection = screen
       .getByRole("heading", { name: "Download PromptBranch" })
       .closest("section");
@@ -190,12 +190,12 @@ describe("landing page", () => {
     }
   });
 
-  it("contains no em-dashes or en-dashes in visible copy", () => {
-    const { container } = render(<Home />);
+  it("contains no em-dashes or en-dashes in visible copy", async () => {
+    const { container } = render(await Home());
     expect(container.textContent).not.toMatch(/[—–]/);
   });
 
-  it("exports indexable SEO metadata with canonical, OG, and Twitter cards", () => {
+  it("exports indexable SEO metadata with canonical, OG, and Twitter cards", async () => {
     expect(metadata.title).toEqual({ absolute: "PromptBranch: Version control for AI prompts" });
     expect(metadata.alternates?.canonical).toBe("/");
     expect(metadata.openGraph).toMatchObject({
@@ -209,8 +209,8 @@ describe("landing page", () => {
     expect(metadata.robots).toBeUndefined();
   });
 
-  it("embeds JSON-LD structured data for search engines and AI agents", () => {
-    const { container } = render(<Home />);
+  it("embeds JSON-LD structured data for search engines and AI agents", async () => {
+    const { container } = render(await Home());
     const script = container.querySelector('script[type="application/ld+json"]');
     expect(script).toBeInTheDocument();
     const parsed = JSON.parse(script!.textContent ?? "{}") as {
