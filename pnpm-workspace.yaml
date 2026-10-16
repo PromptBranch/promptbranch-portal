@@ -15,3 +15,8 @@ overrides:
   # next's range (^0.34.3 || ^0.35.3) lets pnpm keep the stale 0.34.x lockfile
   # entry; pin to the patched line explicitly.
   sharp: ^0.35.3
+  # PostCSS and Tailwind still resolve the vulnerable 1.2.1 despite a safe
+  # copy already present through jsdom.
+  source-map-js: 1.2.2
+  # Mermaid's compatible range stops at the vulnerable 0.16.x line.
+  katex: 0.18.2
