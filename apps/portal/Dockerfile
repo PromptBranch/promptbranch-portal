@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build context is the REPO ROOT (pnpm workspace).
 
-FROM node:26-alpine AS deps
+FROM node:26.12.1-alpine3.24 AS deps
 RUN npm install -g pnpm@11.7.0
 # better-sqlite3 compiles from source when no musl prebuild matches.
 RUN apk add --no-cache python3 make g++
@@ -18,7 +18,7 @@ COPY packages/share packages/share
 COPY apps/portal apps/portal
 RUN pnpm --filter @promptbranch/portal build
 
-FROM node:26-alpine AS runner
+FROM node:26.12.1-alpine3.24 AS runner
 ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/data
