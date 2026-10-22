@@ -7,6 +7,18 @@ const portalRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(portalRoot, "../..");
 
 describe("production container runtime contract", () => {
+  it("uses a Node 26 image with the CVE-2026-111497 fix in both stages", () => {
+    const dockerfile = readFileSync(resolve(portalRoot, "Dockerfile"), "utf8");
+    const stages = [...dockerfile.matchAll(/^FROM node:(26\.(\d+)\.(\d+)-alpine3\.24) AS (deps|runner)$/gm)];
+
+    expect(stages.map((stage) => stage[4])).toEqual(["deps", "runner"]);
+    for (const stage of stages) {
+      const minor = Number(stage[2]);
+      const patch = Number(stage[3]);
+      expect(minor > 12 || (minor === 12 && patch >= 1)).toBe(true);
+    }
+  });
+
   it("ships public assets and gives next/image a writable cache", () => {
     const dockerfile = readFileSync(resolve(portalRoot, "Dockerfile"), "utf8");
     const compose = readFileSync(resolve(repositoryRoot, "deploy/portal/compose.yml"), "utf8");
